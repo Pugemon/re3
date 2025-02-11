@@ -46,7 +46,12 @@ if(${PROJECT}_VENDORED_LIBRW)
 else()
     find_package(librw REQUIRED)
 endif()
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
+
 add_subdirectory(src)
+
+target_link_libraries(${EXECUTABLE} PRIVATE ${SDL2_LIBRARIES})
 
 if(${PROJECT}_INSTALL)
     install(DIRECTORY gamefiles/ DESTINATION ".")
