@@ -1111,16 +1111,20 @@ CRadar::LoadTextures()
 #define WAYPOINT_G (150)
 #define WAYPOINT_B (224)
 
-RwRaster *raster = RwRasterCreate(8, 8, 0, rwRASTERTYPETEXTURE | rwRASTERFORMAT8888);
+RwRaster *raster = RwRasterCreate(16, 16, 0, rwRASTERTYPETEXTURE | rwRASTERFORMAT8888);
 RwUInt32 *pixels = (RwUInt32 *)RwRasterLock(raster, 0, rwRASTERLOCKWRITE);
 
-for (int x = 0; x < 8; x++) {
-    for (int y = 0; y < 8; y++) {
+for (int x = 0; x < 16; x++) {
+    for (int y = 0; y < 16; y++) {
+        if (x < 4 || x >= 12 || y < 4 || y >= 12) {
+            pixels[x + y * 16] = 0; // Transparent border
+        } else {
 #ifdef RW_GL3
-        pixels[x + y * 8] = WAYPOINT_R | (WAYPOINT_G << 8) | (WAYPOINT_B << 16) | (255 << 24);
+            pixels[x + y * 16] = WAYPOINT_R | (WAYPOINT_G << 8) | (WAYPOINT_B << 16) | (255 << 24);
 #else
-        pixels[x + y * 8] = WAYPOINT_B | (WAYPOINT_G << 8) | (WAYPOINT_R << 16) | (255 << 24);
+            pixels[x + y * 16] = WAYPOINT_B | (WAYPOINT_G << 8) | (WAYPOINT_R << 16) | (255 << 24);
 #endif
+        }
     }
 }
 
