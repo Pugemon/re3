@@ -38,7 +38,7 @@
 // Game has colors inlined in code.
 // For easier modification we collect them here:
 const CRGBA LABEL_COLOR(235, 170, 50, 255);
-const CRGBA SELECTION_HIGHLIGHTBG_COLOR(100, 200, 50, 50);
+const CRGBA SELECTION_HIGHLIGHTBG_COLOR(255, 200, 50, 50);
 const CRGBA MENUOPTION_COLOR = LABEL_COLOR;
 const CRGBA SELECTEDMENUOPTION_COLOR(255, 217, 106, 255);
 const CRGBA HEADER_COLOR(0, 0, 0, 255);
