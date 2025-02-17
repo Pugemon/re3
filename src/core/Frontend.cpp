@@ -95,8 +95,8 @@ int GetOptionCount(int screen)
 #define GetBackJustUp GetTriangleJustUp
 #define GetBackJustDown GetTriangleJustDown
 #elif defined(CIRCLE_BACK_BUTTON)
-#define GetBackJustUp GetCircleJustUp
-#define GetBackJustDown GetCircleJustDown
+#define GetBackJustUp GetCrossJustUp
+#define GetBackJustDown GetCrossJustDown
 #else
 #define GetBackJustUp GetSquareJustUp
 #define GetBackJustDown GetSquareJustDown
@@ -3577,7 +3577,7 @@ CMenuManager::AdditionalOptionInput(bool &goBack)
 #else
 			// Adding marker
 			if (m_nMenuFadeAlpha == 255) {
-				if (CPad::GetPad(0)->GetRightMouseJustDown() || CPad::GetPad(0)->GetCrossJustDown()) {
+				if (CPad::GetPad(0)->GetRightMouseJustDown() || CPad::GetPad(0)->GetCircleJustDown()) {
 					if (mapCrosshair.y > m_fMapCenterY - m_fMapSize && mapCrosshair.y < m_fMapCenterY + m_fMapSize &&
 						mapCrosshair.x > m_fMapCenterX - m_fMapSize && mapCrosshair.x < m_fMapCenterX + m_fMapSize) {
 
@@ -3591,7 +3591,7 @@ CMenuManager::AdditionalOptionInput(bool &goBack)
 				}
 			}
 
-			if (CPad::GetPad(0)->GetMouseWheelDown() || CPad::GetPad(0)->GetPageDown() || CPad::GetPad(0)->GetRightShoulder2()) {
+			if (CPad::GetPad(0)->GetMouseWheelDown() || CPad::GetPad(0)->GetPageDown() || CPad::GetPad(0)->GetLeftShoulder1()) {
 				if (CPad::GetPad(0)->GetMouseWheelDown() && m_fMapSize > MENU_X(MAP_SIZE_TO_ALLOW_X_MOVE))
 					ZOOM(mapCrosshair.x, mapCrosshair.y, false);
 				else
@@ -4061,7 +4061,7 @@ CMenuManager::ProcessList(bool &optionSelected, bool &goBack)
 			m_nSelectedListRow = m_nTotalListRow - 1;
 	}
 
-	if (CPad::GetPad(0)->GetEnterJustDown() || CPad::GetPad(0)->GetCrossJustDown()) {
+	if (CPad::GetPad(0)->GetEnterJustDown() || CPad::GetPad(0)->GetCircleJustDown()) {
 		m_bShowMouse = 0;
 		optionSelected = true;
 	}
@@ -4374,12 +4374,12 @@ CMenuManager::UserInput(void)
 		}
 
 		if ((m_nCurrOption == 0) && (m_nCurrScreen == MENUPAGE_PAUSE_MENU)) {
-			if (CPad::GetPad(0)->GetEnterJustUp() || CPad::GetPad(0)->GetCrossJustUp()) {
+			if (CPad::GetPad(0)->GetEnterJustUp() || CPad::GetPad(0)->GetCircleJustUp()) {
 				m_bShowMouse = false;
 				optionSelected = true;
 			}
 		} else {
-			if (CPad::GetPad(0)->GetEnterJustDown() || CPad::GetPad(0)->GetCrossJustDown()) {
+			if (CPad::GetPad(0)->GetEnterJustDown() || CPad::GetPad(0)->GetCircleJustDown()) {
 				m_bShowMouse = false;
 				optionSelected = true;
 			}
@@ -5976,7 +5976,6 @@ const char* controllerTypesPaths[] = {
 	"MODELS/FRONTEND_DS2.TXD",
 	"MODELS/FRONTEND_DS3.TXD",
 	"MODELS/FRONTEND_DS4.TXD",
-	"MODELS/FRONTEND_X360.TXD",
 	"MODELS/FRONTEND_XONE.TXD",
 	"MODELS/FRONTEND_NSW.TXD",
 };
@@ -5988,8 +5987,8 @@ CMenuManager::PrintController(void)
 	if (!m_aFrontEndSprites[MENUSPRITE_CONTROLLER].m_pTexture) return;
 
 	const float scale = 0.9f;
-	const float CONTROLLER_SIZE_X = 235.2f;
-	const float CONTROLLER_SIZE_Y = 175.2f;
+	const float CONTROLLER_SIZE_X = 384.0f;
+	const float CONTROLLER_SIZE_Y = 384.0f;
 	const float CONTROLLER_POS_X = (DEFAULT_SCREEN_WIDTH - CONTROLLER_SIZE_X) / 2.0f;
 	const float CONTROLLER_POS_Y = 220.0f;
 
@@ -6018,88 +6017,91 @@ CMenuManager::PrintController(void)
 	CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.9f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.9f)); // X
 
 	CFont::SetDropColor(CRGBA(0, 0, 0, FadeIn(255)));
-	CFont::SetDropShadowPosition(0);
-	CFont::SetColor(CRGBA(0, 0, 0, FadeIn(255)));
+	CFont::SetDropShadowPosition(1);
+	CFont::SetColor(CRGBA(255, 255, 255, FadeIn(255)));
 	CFont::SetWrapx(SCREEN_WIDTH);
 
-	float TEXT_L2_X = 85.0f + CONTROLLER_POS_X - centerX, TEXT_L2_Y = -14.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_L1_X = -4.0f + CONTROLLER_POS_X - centerX, TEXT_L1_Y = 27.0f + CONTROLLER_POS_Y - centerY, TEXT_L1_Y_VEH = 3.0f + TEXT_L1_Y;
-	float TEXT_DPAD_X = -4.0f + CONTROLLER_POS_X - centerX, TEXT_DPAD_Y = 67.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_LSTICK_X = -4.0f + CONTROLLER_POS_X - centerX, TEXT_LSTICK_Y = 97.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_SELECT_X = 170.0f + CONTROLLER_POS_X - centerX, TEXT_SELECT_Y = 141.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_START_X = 130.0f + CONTROLLER_POS_X - centerX, TEXT_START_Y = 128.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_R2_X = 164.0f + CONTROLLER_POS_X - centerX, TEXT_R2_Y = -14.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_R1_X = 242.0f + CONTROLLER_POS_X - centerX, TEXT_R1_Y = 27.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_L2_X = 106.0f + CONTROLLER_POS_X - centerX, TEXT_L2_Y = -7.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_L1_X = 2.0f + CONTROLLER_POS_X - centerX, TEXT_L1_Y = 15.0f + CONTROLLER_POS_Y - centerY, TEXT_L1_Y_VEH = 3.0f + TEXT_L1_Y;
+	float TEXT_DPAD_X = 2.0f + CONTROLLER_POS_X - centerX, TEXT_DPAD_Y = 120.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_LSTICK_X = 2.0f + CONTROLLER_POS_X - centerX, TEXT_LSTICK_Y = 50.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_SELECT_X = 207.0f + CONTROLLER_POS_X - centerX, TEXT_SELECT_Y = 165.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_START_X = 187.0f + CONTROLLER_POS_X - centerX, TEXT_START_Y = 150.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_R2_X = 274.0F + CONTROLLER_POS_X - centerX, TEXT_R2_Y = -7.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_R1_X = 382.0f + CONTROLLER_POS_X - centerX, TEXT_R1_Y = 17.0f + CONTROLLER_POS_Y - centerY;
 
-	float TEXT_SQUARE_X = 147.0f + CONTROLLER_POS_X - centerX, TEXT_SQUARE_Y = 30.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_TRIANGLE_X = 242.0f + CONTROLLER_POS_X - centerX, TEXT_TRIANGLE_Y = 55.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_CIRCLE_X = 242.0f + CONTROLLER_POS_X - centerX, TEXT_CIRCLE_Y = 67.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_CROSS_X = 242.0f + CONTROLLER_POS_X - centerX, TEXT_CROSS_Y = 80.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_RSTICK_X = 242.0f + CONTROLLER_POS_X - centerX, TEXT_RSTICK_Y = 97.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_R3_X = 242.0f + CONTROLLER_POS_X - centerX, TEXT_R3_Y = 110.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_L3_X = 94.0f + CONTROLLER_POS_X - centerX, TEXT_L3_Y = 162.0f + CONTROLLER_POS_Y - centerY;
-	float TEXT_L2R2_X = 120.0f + CONTROLLER_POS_X - centerX, TEXT_L2R2_Y = -4.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_SQUARE_X = 382.0f + CONTROLLER_POS_X - centerX, TEXT_SQUARE_Y = 52.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_TRIANGLE_X = 382.0f + CONTROLLER_POS_X - centerX, TEXT_TRIANGLE_Y = 55.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_CIRCLE_X = 382.0f + CONTROLLER_POS_X - centerX, TEXT_CIRCLE_Y = 70.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_CROSS_X = 382.0f + CONTROLLER_POS_X - centerX, TEXT_CROSS_Y = 86.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_RSTICK_X = 382.0f + CONTROLLER_POS_X - centerX, TEXT_RSTICK_Y = 102.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_R3_X = 382.0f + CONTROLLER_POS_X - centerX, TEXT_R3_Y = 120.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_L3_X = 2.0f + CONTROLLER_POS_X - centerX, TEXT_L3_Y = 82.0f + CONTROLLER_POS_Y - centerY;
+	float TEXT_L2R2_X = 192.0f + CONTROLLER_POS_X - centerX, TEXT_L2R2_Y = 6.0f + CONTROLLER_POS_Y - centerY;
 
 	switch (m_PrefsControllerType)
 	{
 	case CONTROLLER_DUALSHOCK4:
-		TEXT_L1_Y += 7.0f;
+		TEXT_L1_Y += 8.0f;
+		TEXT_R1_Y += 6.0f;
 		TEXT_L1_Y_VEH = TEXT_L1_Y;
-		TEXT_R1_Y += 7.0f;
-		TEXT_TRIANGLE_Y -= 1.0f;
+		TEXT_TRIANGLE_Y -= 3.0f;
 		TEXT_CIRCLE_Y -= 1.0f;
 		TEXT_CROSS_Y -= 1.0f;
-		TEXT_RSTICK_Y -= 4.0f;
-		TEXT_R3_Y -= 4.0f;
-		TEXT_DPAD_Y -= 2.0f;
-		TEXT_LSTICK_Y -= 6.0f;
-		TEXT_L3_X -= 2.0f;
+		TEXT_SQUARE_Y -= 3.0f;
+		TEXT_RSTICK_Y += 3.0f;
+		TEXT_R3_Y += 8.0f;
+		TEXT_DPAD_Y -= 58.0f;
+		TEXT_LSTICK_Y += 54.0f;
+		TEXT_L3_Y += 46.0f;
+		TEXT_SELECT_X -= 10.0f;
+		TEXT_SELECT_Y -= 11.0f;
+		TEXT_START_X -= 3.0f;
+		TEXT_START_Y -= 14.0f;
 		break;
 	case CONTROLLER_XBOXONE:
-		TEXT_L2_X -= 2.0f;
-		TEXT_R2_X += 2.0f;
-		TEXT_L1_Y += 15.0f;
+		TEXT_L1_Y += 4.0f;
 		TEXT_L1_Y_VEH = TEXT_L1_Y;
-		TEXT_R1_Y += 15.0f;
-		TEXT_TRIANGLE_Y += 4.0f;
+		TEXT_SQUARE_Y += 42.0f;
+		TEXT_TRIANGLE_Y -= 8.0f;
+		TEXT_CIRCLE_Y -= 10.0f;
+		TEXT_CROSS_Y -= 15.0f;
+		TEXT_RSTICK_Y += 10.0f;
+		TEXT_R3_Y += 8.0f;
+		TEXT_DPAD_Y += 8.0f;
+		TEXT_LSTICK_Y -= 13.0f;
+		TEXT_L3_Y -= 30.0f;
+		TEXT_SELECT_X -= 205.0f;
+		TEXT_SELECT_Y -= 90.0f;
+		TEXT_START_X += 195.0f;
+		TEXT_START_Y -= 115.0f;
+		break;
+	case CONTROLLER_DUALSHOCK3:
+		TEXT_R1_Y += 11.0f;
+		TEXT_L1_Y += 13.0f;
+		TEXT_L1_Y_VEH = TEXT_L1_Y;
+		TEXT_TRIANGLE_Y += 2.0f;
 		TEXT_CIRCLE_Y += 4.0f;
-		TEXT_CROSS_Y += 4.0f;
-		TEXT_RSTICK_Y += 1.0f;
-		TEXT_R3_Y += 1.0f;
-		TEXT_DPAD_Y += 29.0f;
-		TEXT_LSTICK_Y -= 20.0f;
-		TEXT_L3_X -= 36.0f;
-		TEXT_L2R2_Y += 5.0f;
-		TEXT_SELECT_X += 4.0f;
+		TEXT_CROSS_Y += 7.0f;
+		TEXT_RSTICK_Y += 17.0f;
+		TEXT_R3_Y += 21.0f;
+		TEXT_DPAD_Y -= 44.0f;
+		TEXT_LSTICK_Y += 68.0f;
+		TEXT_L3_Y += 59.0f;
+		TEXT_SELECT_X -= 8.0f;
+		TEXT_SELECT_Y -= 136.0f;
+		TEXT_START_X -= 19.0f;
+		TEXT_START_Y += 2.0f;
 		break;
 	case CONTROLLER_XBOX360:
-		TEXT_L2_X += 8.0f;
-		TEXT_R2_X -= 8.0f;
-		TEXT_L1_Y += 15.0f;
-		TEXT_L1_Y_VEH = TEXT_L1_Y;
-		TEXT_R1_Y += 15.0f;
-		TEXT_TRIANGLE_Y += 4.0f;
-		TEXT_CIRCLE_Y += 4.0f;
-		TEXT_CROSS_Y += 4.0f;
-		TEXT_RSTICK_Y += 4.0f;
-		TEXT_R3_Y += 4.0f;
-		TEXT_DPAD_Y += 30.0f;
-		TEXT_LSTICK_Y -= 19.0f;
-		TEXT_L3_X -= 36.0f;
-		TEXT_L2R2_Y += 5.0f;
-		TEXT_SELECT_X += 3.0f;
-		break;
-	case CONTROLLER_NINTENDO_SWITCH:
 		TEXT_L1_Y += 5.0f;
 		TEXT_L1_Y_VEH = TEXT_L1_Y;
-		TEXT_R1_Y += 5.0f;
-		TEXT_TRIANGLE_Y += 3.0f;
-		TEXT_CIRCLE_Y += 3.0f;
-		TEXT_CROSS_Y += 3.0f;
-		TEXT_LSTICK_Y -= 23.0f;
-		TEXT_DPAD_Y += 25.0;
-		TEXT_RSTICK_Y += 1.0f;
-		TEXT_R3_Y += 1.0f;
+		TEXT_DPAD_Y += 8.0;
+		TEXT_R3_Y += 10.0f;
+		TEXT_RSTICK_Y += 8.0f;
+		TEXT_SELECT_Y += 5.0f;
+		TEXT_START_X += 3.0f;
+		TEXT_START_Y += 5.0f;
 		break;
 	};
 
@@ -6118,13 +6120,15 @@ CMenuManager::PrintController(void)
 				CFont::SetRightJustifyWrap(0);
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
 			CFont::SetRightJustifyWrap(0);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y)), TheText.Get("FEC_LOF"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_MOV"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_MOV"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_CR3"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_CR3"));
 			CFont::SetRightJustifyOn();
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_GERMAN:
@@ -6136,7 +6140,6 @@ CMenuManager::PrintController(void)
 			default:
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
 			switch (m_PrefsLanguage)
@@ -6150,13 +6153,13 @@ CMenuManager::PrintController(void)
 			default:
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
 			CFont::SetJustifyOn();
 			CFont::SetWrapx(SCREEN_WIDTH);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_TAR"));
 			CFont::SetRightJustifyOn();
-			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
+			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_ENV"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CIRCLE_X)), MENU_Y(Y(TEXT_CIRCLE_Y)), TheText.Get("FEC_ATT"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_RUN"));
@@ -6177,19 +6180,22 @@ CMenuManager::PrintController(void)
 				CFont::SetRightJustifyWrap(0);
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
 			CFont::SetRightJustifyWrap(0);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y)), TheText.Get("FEC_LOF"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_CAM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_MOV"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_CR3"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_CR3"));
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
+			CFont::SetRightJustifyOn();
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_GERMAN:
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_NA"));
 				break;
 			default:
-				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X - 50)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_NA"));
+				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_NA"));
 				break;
 			}
 			CFont::SetJustifyOn();
@@ -6205,13 +6211,12 @@ CMenuManager::PrintController(void)
 			default:
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
 			CFont::SetJustifyOn();
 			CFont::SetWrapx(SCREEN_WIDTH);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_TAR"));
 			CFont::SetRightJustifyOn();
-			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
 			CFont::SetJustifyOn();
+			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_ENV"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CIRCLE_X)), MENU_Y(Y(TEXT_CIRCLE_Y)), TheText.Get("FEC_ATT"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_RUN"));
@@ -6232,13 +6237,15 @@ CMenuManager::PrintController(void)
 				CFont::SetRightJustifyWrap(0);
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
 			CFont::SetRightJustifyWrap(0);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y)), TheText.Get("FEC_ENV"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_MOV"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_MOV"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_CR3"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_CR3"));
 			CFont::SetRightJustifyOn();
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_GERMAN:
@@ -6250,7 +6257,6 @@ CMenuManager::PrintController(void)
 			default:
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
 			switch (m_PrefsLanguage)
@@ -6264,13 +6270,13 @@ CMenuManager::PrintController(void)
 			default:
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
 			CFont::SetJustifyOn();
 			CFont::SetWrapx(SCREEN_WIDTH);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_TAR"));
 			CFont::SetRightJustifyOn();
-			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
+			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_LOF"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CIRCLE_X)), MENU_Y(Y(TEXT_CIRCLE_Y)), TheText.Get("FEC_RUN"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_ATT"));
@@ -6291,13 +6297,15 @@ CMenuManager::PrintController(void)
 				CFont::SetRightJustifyWrap(0);
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
 			CFont::SetRightJustifyWrap(0);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y)), TheText.Get("FEC_TAR"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_NA"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_MOV"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_CR3"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_CR3"));
 			CFont::SetRightJustifyOn();
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_CWL"));
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_GERMAN:
@@ -6309,7 +6317,6 @@ CMenuManager::PrintController(void)
 			default:
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
 			switch (m_PrefsLanguage)
@@ -6323,13 +6330,13 @@ CMenuManager::PrintController(void)
 			default:
 				break;
 			}
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
 			CFont::SetJustifyOn();
 			CFont::SetWrapx(SCREEN_WIDTH);
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_ATT"));
 			CFont::SetRightJustifyOn();
-			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
+			CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_ENV"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CIRCLE_X)), MENU_Y(Y(TEXT_CIRCLE_Y)), TheText.Get("FEC_LOF"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_RUN"));
@@ -6360,12 +6367,15 @@ CMenuManager::PrintController(void)
 		switch (CPad::GetPad(0)->Mode) {
 		case 0:
 			CFont::SetRightJustifyOn();
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y_VEH)), TheText.Get("FEC_RSC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_VES"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_VES"));
 			CFont::SetRightJustifyOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L3_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_HO3"));
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_FRENCH:
@@ -6381,10 +6391,8 @@ CMenuManager::PrintController(void)
 				break;
 			}
 			CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)) - SCREEN_SCALE_X(80));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_HAB"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_EXV"));
@@ -6392,13 +6400,11 @@ CMenuManager::PrintController(void)
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_ACC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_RSTICK_X)), MENU_Y(Y(TEXT_RSTICK_Y)), TheText.Get("FEC_TUC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R3_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_SM3"));
-			CFont::SetRightJustifyOn();
+			CFont::SetJustifyOn();
 			switch (m_PrefsControllerType)
 			{
 			case CONTROLLER_XBOXONE:
 			case CONTROLLER_XBOX360:
-			case CONTROLLER_NINTENDO_SWITCH:
-				CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
 				switch (m_PrefsLanguage)
 				{
 				case LANGUAGE_FRENCH:
@@ -6411,7 +6417,7 @@ CMenuManager::PrintController(void)
 					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(90));
 					break;
 				default:
-					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(60));
+					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(0));
 					break;
 				}
 				break;
@@ -6435,7 +6441,7 @@ CMenuManager::PrintController(void)
 				case LANGUAGE_ITALIAN:
 					CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
 				default:
-					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(100));
+					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(0));
 					break;
 				}
 				break;
@@ -6444,12 +6450,15 @@ CMenuManager::PrintController(void)
 			break;
 		case 1:
 			CFont::SetRightJustifyOn();
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y_VEH)), TheText.Get("FEC_HOR"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_CAM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_VES"));
 			CFont::SetRightJustifyOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_RSC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L3_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_NA"));
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_GERMAN:
@@ -6462,10 +6471,8 @@ CMenuManager::PrintController(void)
 				break;
 			}
 			CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)) - SCREEN_SCALE_X(80));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_RSC"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_HAB"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_EXV"));
@@ -6473,13 +6480,11 @@ CMenuManager::PrintController(void)
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_ACC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_RSTICK_X)), MENU_Y(Y(TEXT_RSTICK_Y)), TheText.Get("FEC_TUC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R3_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_SM3"));
-			CFont::SetRightJustifyOn();
+			CFont::SetJustifyOn();
 			switch (m_PrefsControllerType)
 			{
 			case CONTROLLER_XBOXONE:
 			case CONTROLLER_XBOX360:
-			case CONTROLLER_NINTENDO_SWITCH:
-				CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
 				switch (m_PrefsLanguage)
 				{
 				case LANGUAGE_FRENCH:
@@ -6492,7 +6497,7 @@ CMenuManager::PrintController(void)
 					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(90));
 					break;
 				default:
-					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(60));
+					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(0));
 					break;
 				}
 				break;
@@ -6516,7 +6521,7 @@ CMenuManager::PrintController(void)
 				case LANGUAGE_ITALIAN:
 					CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
 				default:
-					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(100));
+					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(0));
 					break;
 				}
 				break;
@@ -6525,12 +6530,15 @@ CMenuManager::PrintController(void)
 			break;
 		case 2:
 			CFont::SetRightJustifyOn();
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y_VEH)), TheText.Get("FEC_EXV"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_VES"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_VES"));
 			CFont::SetRightJustifyOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L3_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_RS3"));
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_FRENCH:
@@ -6546,10 +6554,8 @@ CMenuManager::PrintController(void)
 				break;
 			}
 			CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)) - SCREEN_SCALE_X(80));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_HOR"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_HAB"));
@@ -6557,13 +6563,11 @@ CMenuManager::PrintController(void)
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_ACC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_RSTICK_X)), MENU_Y(Y(TEXT_RSTICK_Y)), TheText.Get("FEC_TUC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R3_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_SM3"));
-			CFont::SetRightJustifyOn();
+			CFont::SetJustifyOn();
 			switch (m_PrefsControllerType)
 			{
 			case CONTROLLER_XBOXONE:
 			case CONTROLLER_XBOX360:
-			case CONTROLLER_NINTENDO_SWITCH:
-				CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
 				switch (m_PrefsLanguage)
 				{
 				case LANGUAGE_FRENCH:
@@ -6576,7 +6580,7 @@ CMenuManager::PrintController(void)
 					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(90));
 					break;
 				default:
-					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(60));
+					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(0));
 					break;
 				}
 				break;
@@ -6600,7 +6604,7 @@ CMenuManager::PrintController(void)
 				case LANGUAGE_ITALIAN:
 					CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
 				default:
-					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(100));
+					CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)) - SCREEN_SCALE_X(0));
 					break;
 				}
 				break;
@@ -6609,12 +6613,15 @@ CMenuManager::PrintController(void)
 			break;
 		case 3:
 			CFont::SetRightJustifyOn();
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L1_X)), MENU_Y(Y(TEXT_L1_Y_VEH)), TheText.Get("FEC_HAB"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_DPAD_X)), MENU_Y(Y(TEXT_DPAD_Y)), TheText.Get("FEC_TUC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_LSTICK_X)), MENU_Y(Y(TEXT_LSTICK_Y)), TheText.Get("FEC_VES"));
 			CFont::SetRightJustifyOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L3_X)), MENU_Y(Y(TEXT_L3_Y)), TheText.Get("FEC_HO3"));
+			CFont::SetCentreOn();
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_L2_X)), MENU_Y(Y(TEXT_L2_Y)), TheText.Get("FEC_LL"));
+			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			switch (m_PrefsLanguage)
 			{
 			case LANGUAGE_FRENCH:
@@ -6630,10 +6637,8 @@ CMenuManager::PrintController(void)
 				break;
 			}
 			CFont::SetRightJustifyWrap(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)) - SCREEN_SCALE_X(80));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
-			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_LR"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_CAW"));
 			CFont::SetJustifyOn();
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_EXV"));
@@ -6641,16 +6646,11 @@ CMenuManager::PrintController(void)
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_NA"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_RSTICK_X)), MENU_Y(Y(TEXT_RSTICK_Y)), TheText.Get("FEC_ACC"));
 			CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R3_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_BRA"));
-			CFont::SetRightJustifyOn();
+			CFont::SetJustifyOn();
 			CFont::SetRightJustifyWrap(0);
 			switch (m_PrefsControllerType)
 			{
-			case CONTROLLER_XBOXONE:
-			case CONTROLLER_XBOX360:
-			case CONTROLLER_NINTENDO_SWITCH:
-				CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
-				CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_SMT"));
-				break;
+
 			default:
 				switch (m_PrefsLanguage)
 				{
@@ -6662,7 +6662,7 @@ CMenuManager::PrintController(void)
 					CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_SMT"));
 					break;
 				default:
-					CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X + 16.0f)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_SMT"));
+					CFont::PrintStringFromBottom(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_SMT"));
 					break;
 				}
 				break;
@@ -6685,11 +6685,11 @@ CMenuManager::LoadController(int8 type)
 {
 	switch (type)
 	{
-	case CONTROLLER_DUALSHOCK2:
 	case CONTROLLER_DUALSHOCK3:
 	case CONTROLLER_DUALSHOCK4:
 		CFont::LoadButtons("MODELS/PS3BTNS.TXD");
 		break;
+	case CONTROLLER_DUALSHOCK2:
 	case CONTROLLER_NINTENDO_SWITCH:
 		CFont::LoadButtons("MODELS/NSWBTNS.TXD");
 		break;
