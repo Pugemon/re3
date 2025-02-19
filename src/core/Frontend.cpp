@@ -6059,7 +6059,7 @@ CMenuManager::PrintController(void)
 		TEXT_START_X -= 3.0f;
 		TEXT_START_Y -= 14.0f;
 		break;
-	case CONTROLLER_XBOXONE:
+	case CONTROLLER_NINTENDO_SWITCH:
 		TEXT_L1_Y += 4.0f;
 		TEXT_L1_Y_VEH = TEXT_L1_Y;
 		TEXT_SQUARE_Y += 42.0f;
@@ -6093,7 +6093,7 @@ CMenuManager::PrintController(void)
 		TEXT_START_X -= 19.0f;
 		TEXT_START_Y += 2.0f;
 		break;
-	case CONTROLLER_XBOX360:
+	case CONTROLLER_XBOXONE:
 		TEXT_L1_Y += 5.0f;
 		TEXT_L1_Y_VEH = TEXT_L1_Y;
 		TEXT_DPAD_Y += 8.0;
@@ -6352,9 +6352,6 @@ CMenuManager::PrintController(void)
 		CFont::SetCentreOn();
 		switch (m_PrefsLanguage)
 		{
-		case LANGUAGE_ITALIAN:
-			if (m_PrefsControllerType != CONTROLLER_XBOX360)
-				break;
 		case LANGUAGE_FRENCH:
 		case LANGUAGE_GERMAN:
 			CFont::SetScale(MENU_X(SMALLESTTEXT_X_SCALE * 2 * scale * 0.65f), MENU_Y(SMALLESTTEXT_Y_SCALE * scale * 0.65f));
@@ -6404,7 +6401,6 @@ CMenuManager::PrintController(void)
 			switch (m_PrefsControllerType)
 			{
 			case CONTROLLER_XBOXONE:
-			case CONTROLLER_XBOX360:
 				switch (m_PrefsLanguage)
 				{
 				case LANGUAGE_FRENCH:
@@ -6484,7 +6480,6 @@ CMenuManager::PrintController(void)
 			switch (m_PrefsControllerType)
 			{
 			case CONTROLLER_XBOXONE:
-			case CONTROLLER_XBOX360:
 				switch (m_PrefsLanguage)
 				{
 				case LANGUAGE_FRENCH:
@@ -6567,7 +6562,6 @@ CMenuManager::PrintController(void)
 			switch (m_PrefsControllerType)
 			{
 			case CONTROLLER_XBOXONE:
-			case CONTROLLER_XBOX360:
 				switch (m_PrefsLanguage)
 				{
 				case LANGUAGE_FRENCH:
