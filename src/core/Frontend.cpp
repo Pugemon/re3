@@ -3690,7 +3690,7 @@ CMenuManager::LoadController(int8 type)
 		CFont::LoadButtons("MODELS/PS3BTNS.TXD");
 		break;
 	case CONTROLLER_DUALSHOCK2:
-	case CONTROLLER_XBOXONE:
+	case CONTROLLER_NINTENDO_SWITCH:
 		CFont::LoadButtons("MODELS/NSWBTNS.TXD");
 		break;
 	default:
@@ -5903,7 +5903,7 @@ CMenuManager::PrintController(void)
 		TEXT_START_X -= 3.0f;
 		TEXT_START_Y -= 14.0f;
 		break;
-	case CONTROLLER_XBOXONE:
+	case CONTROLLER_NINTENDO_SWITCH:
 		TEXT_L1_Y += 4.0f;
 		TEXT_L1_Y_VEH = TEXT_L1_Y;
 		TEXT_SQUARE_Y += 42.0f;
@@ -5937,7 +5937,7 @@ CMenuManager::PrintController(void)
 		TEXT_START_X -= 19.0f;
 		TEXT_START_Y += 2.0f;
 		break;
-	case CONTROLLER_XBOX360:
+	case CONTROLLER_XBOXONE:
 		TEXT_L1_Y += 5.0f;
 		TEXT_L1_Y_VEH = TEXT_L1_Y;
 		TEXT_R1_Y += 0.0f;
