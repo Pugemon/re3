@@ -6684,7 +6684,7 @@ CMenuManager::LoadController(int8 type)
 		CFont::LoadButtons("MODELS/PS3BTNS.TXD");
 		break;
 	case CONTROLLER_DUALSHOCK2:
-	case CONTROLLER_XBOXONE:
+	case CONTROLLER_NINTENDO_SWITCH:
 		CFont::LoadButtons("MODELS/NSWBTNS.TXD");
 		break;
 	default:
