@@ -300,7 +300,7 @@ enum Config {
 #define USE_TXD_CDIMAGE		// generate and load textures from txd.img
 #define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #define IMPROVED_VIDEOMODE	// save and load videomode parameters instead of a magic number
-#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
+//#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
 #ifdef DISABLE_LOADING_SCREEN
 // enable the PC splash
 #undef RANDOMSPLASH
@@ -369,7 +369,7 @@ enum Config {
 #	ifdef CUSTOM_FRONTEND_OPTIONS
 #		define MENU_MAP			// VC-like menu map. Won't appear if you don't have our menu.txd
 #		define GRAPHICS_MENU_OPTIONS // otherwise Display settings will be scrollable
-#		define NO_ISLAND_LOADING  // disable loadscreen between islands via loading all island data at once, consumes more memory and CPU
+//#		define NO_ISLAND_LOADING  // disable loadscreen between islands via loading all island data at once, consumes more memory and CPU
 #		define CUTSCENE_BORDERS_SWITCH
 #		define MULTISAMPLING		// adds MSAA option
 #		define INVERT_LOOK_FOR_PAD // add bInvertLook4Pad from VC
@@ -463,7 +463,7 @@ enum Config {
 //#define SQUEEZE_PERFORMANCE
 #ifdef SQUEEZE_PERFORMANCE
 	#undef PS2_ALPHA_TEST
-	#undef NO_ISLAND_LOADING
+//	#undef NO_ISLAND_LOADING
 	#undef PS2_AUDIO_CHANNELS
 	#undef EXTENDED_OFFSCREEN_DESPAWN_RANGE
 	#define PC_PARTICLE

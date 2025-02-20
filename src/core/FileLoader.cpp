@@ -38,8 +38,8 @@ GetFilename(const char *filename)
 void
 LoadingScreenLoadingFile(const char *filename)
 {
-	sprintf(gString, "Loading %s", GetFilename(filename));
-	LoadingScreen("Loading the Game", gString, nil);
+    sprintf(gString, "");
+    LoadingScreen("", "", nil);
 }
 
 void
