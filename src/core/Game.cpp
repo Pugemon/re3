@@ -398,7 +398,7 @@ bool CGame::Initialise(const char* datFile)
 	CustomPipes::SetTxdFindCallback();
 #endif
 
-	LoadingScreen("", ", nil);
+	LoadingScreen("", "", nil);
 	int particleTxdSlot = CTxdStore::AddTxdSlot("particle");
 	CTxdStore::LoadTxd(particleTxdSlot, "MODELS/PARTICLE.TXD");
 	CTxdStore::AddRef(particleTxdSlot);
