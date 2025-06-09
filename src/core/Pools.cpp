@@ -379,76 +379,59 @@ VALIDATESAVEBUF(*size)
 
 void CPools::LoadObjectPool(uint8* buf, uint32 size)
 {
-INITSAVEBUF
-	int nObjects;
-	CopyFromBuf(buf, nObjects);
-	for (int i = 0; i < nObjects; i++) {
-		int16 mi;
-		CopyFromBuf(buf, mi);
-		int ref;
-		CopyFromBuf(buf, ref);
-		char* obuf = new char[sizeof(CObject)];
-		CObject* pBufferObject = (CObject*)obuf;
-		CCompressedMatrix tmp;
-		CopyFromBuf(buf, tmp);
-		tmp.DecompressIntoFullMatrix(pBufferObject->GetMatrix());
-		CopyFromBuf(buf, pBufferObject->m_fUprootLimit);
-		CopyFromBuf(buf, tmp);
-		tmp.DecompressIntoFullMatrix(pBufferObject->m_objectMatrix);
-		CopyFromBuf(buf, pBufferObject->ObjectCreatedBy);
-		int8 bitFlag;
-		CopyFromBuf(buf, bitFlag);
-		pBufferObject->bIsPickup = bitFlag;
-		CopyFromBuf(buf, bitFlag);
-		pBufferObject->bPickupObjWithMessage = bitFlag;
-		CopyFromBuf(buf, bitFlag);
-		pBufferObject->bOutOfStock = bitFlag;
-		CopyFromBuf(buf, bitFlag);
-		pBufferObject->bGlassCracked = bitFlag;
-		CopyFromBuf(buf, bitFlag);
-		pBufferObject->bGlassBroken = bitFlag;
-		CopyFromBuf(buf, bitFlag);
-		pBufferObject->bHasBeenDamaged = bitFlag;
-		CopyFromBuf(buf, bitFlag);
-		pBufferObject->bUseVehicleColours = bitFlag;
-		CopyFromBuf(buf, pBufferObject->m_fCollisionDamageMultiplier);
-		CopyFromBuf(buf, pBufferObject->m_nCollisionDamageEffect);
-		CopyFromBuf(buf, pBufferObject->m_nSpecialCollisionResponseCases);
-		CopyFromBuf(buf, pBufferObject->m_nEndOfLifeTime);
-#ifndef COMPATIBLE_SAVES
-		CopyFromBuf(buf, (pBufferObject->GetAddressOfEntityProperties())[0]);
-		CopyFromBuf(buf, (pBufferObject->GetAddressOfEntityProperties())[1]);
-#endif
-		if (GetObjectPool()->GetSlot(ref >> 8))
-			CPopulation::ConvertToDummyObject(GetObjectPool()->GetSlot(ref >> 8));
-		CObject* pObject = new(ref) CObject(mi, false);
-		pObject->GetMatrix() = pBufferObject->GetMatrix();
+    INITSAVEBUF
+    int nObjects;
+    CopyFromBuf(buf, nObjects);
+
+
+    for (int i = 0; i < nObjects; i++) {
+        int16 mi;
+        CopyFromBuf(buf, mi);
+
+        int ref;
+        CopyFromBuf(buf, ref);
+
+        if(GetObjectPool()->GetSlot(ref >> 8)) CPopulation::ConvertToDummyObject(GetObjectPool()->GetSlot(ref >> 8));
+
+	auto pObject = new(ref) CObject(mi, false);
+
+        CCompressedMatrix tmp;
+
+        CopyFromBuf(buf, tmp);
+        tmp.DecompressIntoFullMatrix(pObject->GetMatrix());
+
+        CopyFromBuf(buf, pObject->m_fUprootLimit);
+
+        CopyFromBuf(buf, tmp);
+        tmp.DecompressIntoFullMatrix(pObject->m_objectMatrix);
+
+        CopyFromBuf(buf, pObject->ObjectCreatedBy);
+
+        int8 bitFlag;
+        CopyFromBuf(buf, bitFlag); pObject->bIsPickup = bitFlag;
+        CopyFromBuf(buf, bitFlag); pObject->bPickupObjWithMessage = bitFlag;
+        CopyFromBuf(buf, bitFlag); pObject->bOutOfStock = bitFlag;
+        CopyFromBuf(buf, bitFlag); pObject->bGlassCracked = bitFlag;
+        CopyFromBuf(buf, bitFlag); pObject->bGlassBroken = bitFlag;
+        CopyFromBuf(buf, bitFlag); pObject->bHasBeenDamaged = bitFlag;
+        CopyFromBuf(buf, bitFlag); pObject->bUseVehicleColours = bitFlag;
+
+        CopyFromBuf(buf, pObject->m_fCollisionDamageMultiplier);
+        CopyFromBuf(buf, pObject->m_nCollisionDamageEffect);
+        CopyFromBuf(buf, pObject->m_nSpecialCollisionResponseCases);
+        CopyFromBuf(buf, pObject->m_nEndOfLifeTime);
+
 #ifdef COMPATIBLE_SAVES
-		pObject->LoadEntityFlags(buf);
+        pObject->LoadEntityFlags(buf);
+#else
+        CopyFromBuf(buf, (pObject->GetAddressOfEntityProperties())[0]);
+        CopyFromBuf(buf, (pObject->GetAddressOfEntityProperties())[1]);
 #endif
-		pObject->m_fUprootLimit = pBufferObject->m_fUprootLimit;
-		pObject->m_objectMatrix = pBufferObject->m_objectMatrix;
-		pObject->ObjectCreatedBy = pBufferObject->ObjectCreatedBy;
-		pObject->bIsPickup = pBufferObject->bIsPickup;
-		pObject->bPickupObjWithMessage = pBufferObject->bPickupObjWithMessage;
-		pObject->bOutOfStock = pBufferObject->bOutOfStock;
-		pObject->bGlassCracked = pBufferObject->bGlassCracked;
-		pObject->bGlassBroken = pBufferObject->bGlassBroken;
-		pObject->bHasBeenDamaged = pBufferObject->bHasBeenDamaged;
-		pObject->bUseVehicleColours = pBufferObject->bUseVehicleColours;
-		pObject->m_fCollisionDamageMultiplier = pBufferObject->m_fCollisionDamageMultiplier;
-		pObject->m_nCollisionDamageEffect = pBufferObject->m_nCollisionDamageEffect;
-		pObject->m_nSpecialCollisionResponseCases = pBufferObject->m_nSpecialCollisionResponseCases;
-		pObject->m_nEndOfLifeTime = pBufferObject->m_nEndOfLifeTime;
-#ifndef COMPATIBLE_SAVES
-		(pObject->GetAddressOfEntityProperties())[0] = (pBufferObject->GetAddressOfEntityProperties())[0];
-		(pObject->GetAddressOfEntityProperties())[1] = (pBufferObject->GetAddressOfEntityProperties())[1];
-#endif
-		pObject->bHasCollided = false;
-		CWorld::Add(pObject);
-		delete[] obuf;
-	}
-VALIDATESAVEBUF(size)
+
+        pObject->bHasCollided = false;
+        CWorld::Add(pObject);
+    }
+    VALIDATESAVEBUF(size)
 }
 
 void CPools::SavePedPool(uint8* buf, uint32* size)
