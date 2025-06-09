@@ -361,3 +361,9 @@ codewarrior/Release/
 codewarrior/Debug/
 
 src/extras/GitSHA1.cpp
+
+# Static analyzator
+.PVS-Studio
+
+# IDE Specific files
+.idea

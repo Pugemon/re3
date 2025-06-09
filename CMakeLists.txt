@@ -42,16 +42,18 @@ endif()
 
 option(${PROJECT}_VENDORED_LIBRW "Use vendored librw" ON)
 if(${PROJECT}_VENDORED_LIBRW)
+    set(LIBRW_PLATFORM "GL3")
+    set(LIBRW_GL3_GFXLIB "GLFW")
     add_subdirectory(vendor/librw)
 else()
     find_package(librw REQUIRED)
 endif()
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+#find_package(SDL2 REQUIRED)
+#include_directories(${SDL2_INCLUDE_DIRS})
 
 add_subdirectory(src)
 
-target_link_libraries(${EXECUTABLE} PRIVATE ${SDL2_LIBRARIES})
+#target_link_libraries(${EXECUTABLE} PRIVATE ${SDL2_LIBRARIES})
 
 if(${PROJECT}_INSTALL)
     install(DIRECTORY gamefiles/ DESTINATION ".")
