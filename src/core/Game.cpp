@@ -863,13 +863,14 @@ void CGame::ShutDownForRestart(void)
 
 void CGame::InitialiseWhenRestarting(void)
 {
-	CRect rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	CRGBA color(255, 255, 255, 255);
 	
 	CTimer::Initialise();
 	CSprite2d::SetRecipNearClip();
 
 #ifdef PS2_MENU
+	CRect rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	CRGBA color(255, 255, 255, 255);
+	
 	if ( TheMemoryCard.b_FoundRecentSavedGameWantToLoad == true || TheMemoryCard.m_bWantToLoad == false )
 	{
 		if ( TheMemoryCard.m_bWantToLoad == true )
