@@ -341,9 +341,7 @@ DealWithTxdWriteError(uint32 num, uint32 count, const char *text)
 bool
 CreateTxdImageForVideoCard()
 {
-	uint8 *buf = new uint8[CDSTREAM_SECTOR_SIZE];
-	CDirectory *pDir = new CDirectory(TXDSTORESIZE);
-	CDirectory::DirectoryInfo dirInfo;
+	CDirectory pDir(TXDSTORESIZE);
 
 	CStreaming::FlushRequestList();
 
@@ -354,9 +352,6 @@ CreateTxdImageForVideoCard()
 	RwStream *img = RwStreamOpen(rwSTREAMFILENAME, rwSTREAMWRITE, "models\\txd.img");
 	if (img == nil) {
 		// original code does otherwise and it leaks
-		delete []buf;
-		delete pDir;
-
 		if (_dwOperatingSystemVersion == OS_WINNT || _dwOperatingSystemVersion == OS_WIN2000 || _dwOperatingSystemVersion == OS_WINXP)
 			DealWithTxdWriteError(0, TXDSTORESIZE, "CVT_CRT");
 
@@ -397,14 +392,13 @@ CreateTxdImageForVideoCard()
 			sprintf(filename, "%s.txd", CTxdStore::GetTxdName(i));
 
 			if (CTxdStore::GetSlot(i)->texDict) {
+				CDirectory::DirectoryInfo dirInfo;
 
 				int32 pos = STREAMTELL(img);
 
 				if (RwTexDictionaryStreamWrite(CTxdStore::GetSlot(i)->texDict, img) == nil) {
 					DealWithTxdWriteError(i, TXDSTORESIZE, "CVT_ERR");
 					RwStreamClose(img, nil);
-					delete []buf;
-					delete pDir;
 					CStreaming::RemoveTxd(i);
 #ifdef RW_GL3
 					rw::gl3::needToReadBackTextures = false;
@@ -417,6 +411,7 @@ CreateTxdImageForVideoCard()
 
 				size /= CDSTREAM_SECTOR_SIZE;
 				if (num != 0) {
+					uint8 buf[CDSTREAM_SECTOR_SIZE];
 					size++;
 					num = CDSTREAM_SECTOR_SIZE - num;
 					RwStreamWrite(img, buf, num);
@@ -425,7 +420,7 @@ CreateTxdImageForVideoCard()
 				dirInfo.offset = pos / CDSTREAM_SECTOR_SIZE;
 				dirInfo.size = size;
 				strncpy(dirInfo.name, filename, sizeof(dirInfo.name));
-				pDir->AddItem(dirInfo);
+				pDir.AddItem(dirInfo);
 				CStreaming::RemoveTxd(i);
 			}
 			CStreaming::FlushRequestList();
@@ -439,19 +434,15 @@ CreateTxdImageForVideoCard()
 #endif
 
 	RwStreamClose(img, nil);
-	delete []buf;
 
 #ifdef RW_GL3
 	rw::gl3::needToReadBackTextures = false;
 #endif
 
-	if (!pDir->WriteDirFile("models\\txd.dir")) {
+	if (!pDir.WriteDirFile("models\\txd.dir")) {
 		DealWithTxdWriteError(i, TXDSTORESIZE, "CVT_ERR");
-		delete pDir;
 		return false;
 	}
-
-	delete pDir;
 
 	WriteVideoCardCapsFile();
 	return true;

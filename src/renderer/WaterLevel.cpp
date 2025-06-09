@@ -24,6 +24,8 @@
 #include "WaterLevel.h"
 #include "MemoryHeap.h"
 
+#include <queue>
+
 
 float TEXTURE_ADDU;
 float TEXTURE_ADDV;
@@ -453,66 +455,42 @@ CWaterLevel::TestVisibilityForFineWaterBlocks(const CVector &worldPos)
 void
 CWaterLevel::RemoveIsolatedWater()
 {
-	bool (*isConnected)[MAX_SMALL_SECTORS] = new bool[MAX_SMALL_SECTORS][MAX_SMALL_SECTORS];
+	bool isConnected[MAX_SMALL_SECTORS][MAX_SMALL_SECTORS] = {};
 
-	for (int32 x = 0; x < MAX_SMALL_SECTORS; x++)
-	{
-		for (int32 y = 0; y < MAX_SMALL_SECTORS; y++)
-		{
-			isConnected[x][y] = false;
-		}
+	std::queue<std::pair<int32, int32>> q;
+
+	if (aWaterFineBlockList[0][0] >= 0) {
+		q.push({0, 0});
+		isConnected[0][0] = true;
 	}
 
-	isConnected[0][0] = true;
-	bool keepGoing;
+	while (!q.empty()) {
+		std::pair<int32, int32> current = q.front();
+		q.pop();
 
-	do
-	{
-		keepGoing = false;
+		int32 x = current.first;
+		int32 y = current.second;
 
-		for (int32 x = 0; x < MAX_SMALL_SECTORS; x++)
-		{
-			for (int32 y = 0; y < MAX_SMALL_SECTORS; y++)
-			{
-				if (aWaterFineBlockList[x][y] < 0 || isConnected[x][y])
-					continue;
+		constexpr int32 dx[] = {0, 0, 1, -1};
+		constexpr int32 dy[] = {1, -1, 0, 0};
 
-				if (x > 0 && isConnected[x - 1][y])
-				{
-					isConnected[x][y] = true;
-					keepGoing = true;
-				}
+		for (int i = 0; i < 4; ++i) {
+			int32 nextX = x + dx[i];
+			int32 nextY = y + dy[i];
 
-				if (y > 0 && isConnected[x][y - 1])
-				{
-					isConnected[x][y] = true;
-					keepGoing = true;
-				}
-
-				if (x + 1 < MAX_SMALL_SECTORS && isConnected[x + 1][y])
-				{
-					isConnected[x][y] = true;
-					keepGoing = true;
-				}
-
-				if (y + 1 < MAX_SMALL_SECTORS && isConnected[x][y + 1])
-				{
-					isConnected[x][y] = true;
-					keepGoing = true;
+			if (nextX >= 0 && nextX < MAX_SMALL_SECTORS && nextY >= 0 && nextY < MAX_SMALL_SECTORS) {
+				if (aWaterFineBlockList[nextX][nextY] >= 0 && !isConnected[nextX][nextY]) {
+					isConnected[nextX][nextY] = true;
+					q.push({nextX, nextY});
 				}
 			}
 		}
 	}
-	while (keepGoing);
 
 	int32 numRemoved = 0;
-
-	for (int32 x = 0; x < MAX_SMALL_SECTORS; x++)
-	{
-		for (int32 y = 0; y < MAX_SMALL_SECTORS; y++)
-		{
-			if (aWaterFineBlockList[x][y] >= 0 && !isConnected[x][y] && ms_aWaterZs[aWaterFineBlockList[x][y]] == 0.0f)
-			{
+	for (int32 x = 0; x < MAX_SMALL_SECTORS; x++) {
+		for (int32 y = 0; y < MAX_SMALL_SECTORS; y++) {
+			if (aWaterFineBlockList[x][y] >= 0 && !isConnected[x][y] && ms_aWaterZs[aWaterFineBlockList[x][y]] == 0.0f) {
 				numRemoved++;
 				aWaterFineBlockList[x][y] = NO_WATER;
 			}
@@ -520,8 +498,6 @@ CWaterLevel::RemoveIsolatedWater()
 	}
 
 	printf("Removed %d isolated patches of water\n", numRemoved);
-
-	delete[] isConnected;
 }
 #endif
 
