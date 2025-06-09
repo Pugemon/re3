@@ -11,6 +11,8 @@ include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1 "ALLOW_LOOKING_ABOVE_CMAKE_SOURCE_DIR")
 message(STATUS "Building ${CMAKE_PROJECT_NAME} GIT SHA1: ${GIT_SHA1}")
 
+option(TRACY_ENABLE "Build with Tracy profiler" OFF)
+
 if(NINTENDO_SWITCH)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/nx")
     include(NXFunctions)
@@ -52,6 +54,11 @@ endif()
 #include_directories(${SDL2_INCLUDE_DIRS})
 
 add_subdirectory(src)
+
+if (TRACY_ENABLE)
+    find_package(Tracy CONFIG REQUIRED)
+    target_link_libraries(${EXECUTABLE} PRIVATE Tracy::TracyClient)
+endif ()
 
 #target_link_libraries(${EXECUTABLE} PRIVATE ${SDL2_LIBRARIES})
 

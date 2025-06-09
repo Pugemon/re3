@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 class CEntity;
 
@@ -116,4 +117,6 @@ public:
 	static void RenderWater(void);	// keep-out polys and water
 #endif
 	static void InsertEntityIntoList(CEntity *ent);
+private:
+	static std::vector<CEntity*> ms_tempVisibleEntities;
 };

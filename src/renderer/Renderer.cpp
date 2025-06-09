@@ -1,6 +1,8 @@
 #define WITHD3D
 #include "common.h"
 
+#include <tracy/Tracy.hpp>
+
 #include "main.h"
 #include "Lights.h"
 #include "ModelInfo.h"
@@ -67,6 +69,7 @@ struct EntityInfo
 CLinkList<EntityInfo> gSortedVehiclesAndPeds;
 
 int32 CRenderer::ms_nNoOfVisibleEntities;
+std::vector<CEntity*> CRenderer::ms_tempVisibleEntities;
 CEntity *CRenderer::ms_aVisibleEntityPtrs[NUMVISIBLEENTITIES];
 CEntity *CRenderer::ms_aInVisibleEntityPtrs[NUMINVISIBLEENTITIES];
 int32 CRenderer::ms_nNoOfInVisibleEntities;
@@ -735,74 +738,63 @@ enum Visbility
 int32
 CRenderer::SetupEntityVisibility(CEntity *ent)
 {
-	CSimpleModelInfo *mi = (CSimpleModelInfo*)CModelInfo::GetModelInfo(ent->m_modelIndex);
-	CTimeModelInfo *ti;
-	int32 other;
-	float dist;
+	ZoneScoped;
 
+	auto mi = static_cast<CSimpleModelInfo*>(CModelInfo::GetModelInfo(ent->m_modelIndex));
+	int modelType = mi->GetModelType();
+
+	// --- Logic for complex models (Clumps) ---
+	if (modelType != MITYPE_SIMPLE && modelType != MITYPE_TIME) {
+		if (ent->m_rwObject == nil || !ent->bIsVisible)
+			return VIS_INVISIBLE;
+
+		if(FindPlayerVehicle() == ent && TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_1STPERSON) {
+			return VIS_OFFSCREEN;
+		}
+
+		if(!ent->GetIsOnScreen())
+			return VIS_OFFSCREEN;
+		if(ent->bDrawLast) {
+			const float dist = (ent->GetPosition() - ms_vecCameraPosition).Magnitude();
+			CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
+			ent->bDistanceFade = false;
+			return VIS_INVISIBLE;
+		}
+		return VIS_VISIBLE;
+	}
+
+	// --- Logic for temporary objects ---
+	if(ent->IsObject() && static_cast<CObject*>(ent)->ObjectCreatedBy == TEMP_OBJECT) {
+		if (ent->m_rwObject == nil || !ent->bIsVisible)
+			return VIS_INVISIBLE;
+		return ent->GetIsOnScreen() ? VIS_VISIBLE : VIS_OFFSCREEN;
+	}
+
+	// --- Logic for Time-models ---
 	bool request = true;
-	if (mi->GetModelType() == MITYPE_TIME) {
- 		ti = (CTimeModelInfo*)mi;
-		other = ti->GetOtherTimeModel();
-		if(CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff())){
-			// don't fade in, or between time objects
-			if(CANTIMECULL)
+	if(modelType == MITYPE_TIME) {
+		auto ti = static_cast<CTimeModelInfo*>(mi);
+		int32 other = ti->GetOtherTimeModel();
+		if (CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff())) {
+			if (CANTIMECULL)
 				ti->m_alpha = 255;
-		}else{
-			// Hide if possible
-			if(CANTIMECULL)
+		} else {
+			if (CANTIMECULL)
 				return VIS_INVISIBLE;
-			// can't cull, so we'll try to draw this one, but don't request
-			// it since what we really want is the other one.
 			request = false;
-		}
-	}else{
-		if (mi->GetModelType() != MITYPE_SIMPLE) {
-			if(FindPlayerVehicle() == ent &&
-			   TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_1STPERSON){
-				// Player's vehicle in first person mode
-				if(TheCamera.Cams[TheCamera.ActiveCam].DirectionWasLooking == LOOKING_FORWARD ||
-				   ent->GetModelIndex() == MI_RHINO ||
-				   ent->GetModelIndex() == MI_COACH ||
-				   TheCamera.m_bInATunnelAndABigVehicle){
-					ent->bNoBrightHeadLights = true;
-				}else{
-					m_pFirstPersonVehicle = (CVehicle*)ent;
-					ent->bNoBrightHeadLights = false;
-				}
-				return VIS_OFFSCREEN;
-			}
-			// All sorts of Clumps
-			if(ent->m_rwObject == nil || !ent->bIsVisible)
-				return VIS_INVISIBLE;
-			if(!ent->GetIsOnScreen())
-				return VIS_OFFSCREEN;
-			if(ent->bDrawLast){
-				dist = (ent->GetPosition() - ms_vecCameraPosition).Magnitude();
-				CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
-				ent->bDistanceFade = false;
-				return VIS_INVISIBLE;
-			}
-			return VIS_VISIBLE;
-		}
-		if(ent->IsObject() &&
-		   ((CObject*)ent)->ObjectCreatedBy == TEMP_OBJECT){
-			if(ent->m_rwObject == nil || !ent->bIsVisible)
-				return VIS_INVISIBLE;
-			return ent->GetIsOnScreen() ? VIS_VISIBLE : VIS_OFFSCREEN;
 		}
 	}
 
-	// Simple ModelInfo
+	// --- Optimized distance for SIMPLE/TIME models ---
+	const float distSqr = (ent->GetPosition() - ms_vecCameraPosition).MagnitudeSqr();
+	float dist = Sqrt(distSqr);
 
-	dist = (ent->GetPosition() - ms_vecCameraPosition).Magnitude();
-
-	// This can only happen with multi-atomic models (e.g. railtracks)
-	// but why do we bump up the distance? can only be fading...
-	if(LOD_DISTANCE + STREAM_DISTANCE < dist && dist < mi->GetLargestLodDistance())
+	static const float LOD_STREAM_DIST = LOD_DISTANCE + STREAM_DISTANCE;
+	if (LOD_STREAM_DIST < dist && dist < mi->GetLargestLodDistance()) {
 		dist = mi->GetLargestLodDistance();
+	}
 
-	if(ent->IsObject() && ent->bRenderDamaged)
+	if (ent->IsObject() && ent->bRenderDamaged)
 		mi->m_isDamaged = true;
 
 	RpAtomic *a = mi->GetAtomicFromDistance(dist);
@@ -817,24 +809,17 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 		if(RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
 			RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
 		mi->IncreaseAlpha();
-		if(ent->m_rwObject == nil || !ent->bIsVisible)
+		if(!ent->bIsVisible)
 			return VIS_INVISIBLE;
 
 		if(!ent->GetIsOnScreen()){
 			mi->m_alpha = 255;
 			return VIS_OFFSCREEN;
 		}
-
-		if(mi->m_alpha != 255){
+		if(mi->m_alpha != 255 || mi->m_drawLast || ent->bDrawLast){
 			CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
-			ent->bDistanceFade = true;
-			return VIS_INVISIBLE;
-		}
-
-		if(mi->m_drawLast || ent->bDrawLast){
-			CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
-			ent->bDistanceFade = false;
-			return VIS_INVISIBLE;
+			ent->bDistanceFade = (mi->m_alpha != 255);
+			return VIS_INVISIBLE; // In old code VISIBLE/OFFSCREEN, but its anyway alpha list
 		}
 		return VIS_VISIBLE;
 	}
@@ -843,7 +828,7 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 
 	if(mi->m_noFade){
 		mi->m_isDamaged = false;
-		// request model
+		// Use dist, in "hack" logic
 		if(dist - STREAM_DISTANCE < mi->GetLargestLodDistance() && request)
 			return VIS_STREAMME;
 		return VIS_INVISIBLE;
@@ -867,7 +852,7 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 	if(RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
 		RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
 	mi->IncreaseAlpha();
-	if(ent->m_rwObject == nil || !ent->bIsVisible)
+	if(!ent->bIsVisible)
 		return VIS_INVISIBLE;
 
 	if(!ent->GetIsOnScreen()){
@@ -883,42 +868,44 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 int32
 CRenderer::SetupBigBuildingVisibility(CEntity *ent)
 {
-	CSimpleModelInfo *mi = (CSimpleModelInfo *)CModelInfo::GetModelInfo(ent->GetModelIndex());
-	CTimeModelInfo *ti;
-	int32 other;
+	ZoneScoped;
+
+	CSimpleModelInfo *mi = static_cast<CSimpleModelInfo *>(CModelInfo::GetModelInfo(ent->GetModelIndex()));
 
 	if (mi->GetModelType() == MITYPE_TIME) {
- 		ti = (CTimeModelInfo*)mi;
-		other = ti->GetOtherTimeModel();
+		auto ti = static_cast<CTimeModelInfo*>(mi);
+		int32 other = ti->GetOtherTimeModel();
 		// Hide objects not in time range if possible
-		if(CANTIMECULL)
-			if(!CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff()))
-				return VIS_INVISIBLE;
-		// Draw like normal
+		if (CANTIMECULL && !CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff()))
+			return VIS_INVISIBLE;
 	} else if (mi->GetModelType() == MITYPE_VEHICLE)
 		return ent->IsVisible() ? VIS_VISIBLE : VIS_INVISIBLE;
 
-	float dist = (ms_vecCameraPosition-ent->GetPosition()).Magnitude();
+	// --- Optimization with squared distance ---
+	const float distSqr = (ms_vecCameraPosition - ent->GetPosition()).MagnitudeSqr();
 	CSimpleModelInfo *nonLOD = mi->GetRelatedModel();
 
 	// Find out whether to draw below near distance.
 	// This is only the case if there is a non-LOD which is either not
 	// loaded or not completely faded in yet.
-	if(dist < mi->GetNearDistance() && dist < LOD_DISTANCE + STREAM_DISTANCE){
+	const float nearDistSqr = mi->GetNearDistance() * mi->GetNearDistance();
+	static const float lodStreamDistSqr = (LOD_DISTANCE + STREAM_DISTANCE) * (LOD_DISTANCE + STREAM_DISTANCE);
+
+	if (distSqr < nearDistSqr && distSqr < lodStreamDistSqr) {
 		// No non-LOD or non-LOD is completely visible.
-		if(nonLOD == nil ||
-		   nonLOD->GetRwObject() && nonLOD->m_alpha == 255)
+		if(nonLOD == nil || (nonLOD->GetRwObject() && nonLOD->m_alpha == 255))
 			return VIS_INVISIBLE;
 
-		// But if it is a time object, we'd rather draw the wrong
-		// non-LOD than the right LOD.
 		if (nonLOD->GetModelType() == MITYPE_TIME) {
-			ti = (CTimeModelInfo*)nonLOD;
-			other = ti->GetOtherTimeModel();
+			auto ti = static_cast<CTimeModelInfo*>(nonLOD);
+			int32 other = ti->GetOtherTimeModel();
 			if(other != -1 && CModelInfo::GetModelInfo(other)->GetRwObject())
 				return VIS_INVISIBLE;
 		}
 	}
+
+	// --- Compute accurate dist only if needed ---
+	float dist = Sqrt(distSqr);
 
 	RpAtomic *a = mi->GetAtomicFromDistance(dist);
 	if(a){
@@ -926,9 +913,6 @@ CRenderer::SetupBigBuildingVisibility(CEntity *ent)
 			ent->CreateRwObject();
 		assert(ent->m_rwObject);
 		RpAtomic *rwobj = (RpAtomic*)ent->m_rwObject;
-
-		// Make sure our atomic uses the right geometry and not
-		// that of an atomic for another draw distance.
 		if(RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
 			RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
 		if (!ent->IsVisible() || !ent->GetIsOnScreenComplex())
@@ -1511,70 +1495,62 @@ CRenderer::ScanBigBuildingList(CPtrList &list)
 void
 CRenderer::ScanSectorList(CPtrList *lists)
 {
-	CPtrNode *node;
-	CPtrList *list;
-	CEntity *ent;
-	int i;
-	float dx, dy;
+	ZoneScoped;
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
-		list = &lists[i];
-		for(node = list->first; node; node = node->next){
-			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
-				continue;	// already seen
-			ent->m_scanCode = CWorld::GetCurrentScanCode();
+	const uint32 currentScanCode = CWorld::GetCurrentScanCode();
+	const CVector& camPos = ms_vecCameraPosition;
 
-			if(IsEntityCullZoneVisible(ent)){
-				switch(SetupEntityVisibility(ent)){
-				case VIS_VISIBLE:
-					InsertEntityIntoList(ent);
-					break;
-				case VIS_INVISIBLE:
-					if(!IsGlass(ent->GetModelIndex()))
-						break;
-					// fall through
-				case VIS_OFFSCREEN:
-					dx = ms_vecCameraPosition.x - ent->GetPosition().x;
-					dy = ms_vecCameraPosition.y - ent->GetPosition().y;
-					if(dx > -65.0f && dx < 65.0f &&
-					   dy > -65.0f && dy < 65.0f &&
-					   ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
+	ms_tempVisibleEntities.clear();
+	{
+		ZoneScopedN("Gather Entities");
+		for (int i = 0; i < NUMSECTORENTITYLISTS; i++) {
+			for (CPtrNode* node = lists[i].first; node; node = node->next) {
+				CEntity* ent = static_cast<CEntity*>(node->item);
+				if (ent->m_scanCode != currentScanCode) {
+					ent->m_scanCode = currentScanCode;
+					ms_tempVisibleEntities.push_back(ent);
+				}
+			}
+		}
+	}
+
+	if (ms_tempVisibleEntities.empty())
+		return;
+
+	TracyPlot("Entities to Process", static_cast<int64_t>(ms_tempVisibleEntities.size()));
+
+	{
+		ZoneScopedN("Process Entities");
+		for (CEntity* ent : ms_tempVisibleEntities) {
+			if (IsEntityCullZoneVisible(ent)) {
+				switch (SetupEntityVisibility(ent)) {
+				case VIS_VISIBLE: InsertEntityIntoList(ent); break;
+				case VIS_INVISIBLE: if (!IsGlass(ent->GetModelIndex())) break; // fallthrough
+				case VIS_OFFSCREEN: {
+					const float dx = camPos.x - ent->GetPosition().x;
+					const float dy = camPos.y - ent->GetPosition().y;
+					if (ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1 && dx > -65.0f && dx < 65.0f && dy > -65.0f && dy < 65.0f)
 						ms_aInVisibleEntityPtrs[ms_nNoOfInVisibleEntities++] = ent;
 					break;
+				}
 				case VIS_STREAMME:
-					if(!CStreaming::ms_disableStreaming)
-						if(!m_loadingPriority || CStreaming::ms_numModelsRequested < 10)
-							CStreaming::RequestModel(ent->GetModelIndex(), 0);
+					if (!CStreaming::ms_disableStreaming && (!m_loadingPriority || CStreaming::ms_numModelsRequested < 10))
+						CStreaming::RequestModel(ent->GetModelIndex(), 0);
 					break;
 				}
 #ifndef MASTER
 				EntitiesRendered++;
-				switch(ent->GetType()){
-				case ENTITY_TYPE_BUILDING:
-					if(ent->bIsBIGBuilding)
-						RenderedBigBuildings++;
-					else
-						RenderedBuildings++;
-					break;
-				case ENTITY_TYPE_VEHICLE:
-					RenderedCars++;
-					break;
-				case ENTITY_TYPE_PED:
-					RenderedPeds++;
-					break;
-				case ENTITY_TYPE_OBJECT:
-					RenderedObjects++;
-					break;
-				case ENTITY_TYPE_DUMMY:
-					RenderedDummies++;
-					break;
+				switch (ent->GetType()) {
+				case ENTITY_TYPE_BUILDING: ent->bIsBIGBuilding ? RenderedBigBuildings++ : RenderedBuildings++; break;
+				case ENTITY_TYPE_VEHICLE:  RenderedCars++; break;
+				case ENTITY_TYPE_PED:      RenderedPeds++; break;
+				case ENTITY_TYPE_OBJECT:   RenderedObjects++; break;
+				case ENTITY_TYPE_DUMMY:    RenderedDummies++; break;
 				}
 #endif
 			}else if(IsRoad(ent) && !CStreaming::ms_disableStreaming){
-				if(SetupEntityVisibility(ent) == VIS_STREAMME)
-					if(!m_loadingPriority || CStreaming::ms_numModelsRequested < 10)
-						CStreaming::RequestModel(ent->GetModelIndex(), 0);
+				if(SetupEntityVisibility(ent) == VIS_STREAMME && (!m_loadingPriority || CStreaming::ms_numModelsRequested < 10))
+					CStreaming::RequestModel(ent->GetModelIndex(), 0);
 			}else{
 #ifndef MASTER
 				EntitiesNotRendered++;
@@ -1587,37 +1563,40 @@ CRenderer::ScanSectorList(CPtrList *lists)
 void
 CRenderer::ScanSectorList_Priority(CPtrList *lists)
 {
-	CPtrNode *node;
-	CPtrList *list;
-	CEntity *ent;
-	int i;
-	float dx, dy;
+	ZoneScoped;
+	const uint32 currentScanCode = CWorld::GetCurrentScanCode();
+	const CVector& camPos = ms_vecCameraPosition;
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
-		list = &lists[i];
-		for(node = list->first; node; node = node->next){
-			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
-				continue;	// already seen
-			ent->m_scanCode = CWorld::GetCurrentScanCode();
+	ms_tempVisibleEntities.clear();
+	{
+		ZoneScopedN("Priority Gather");
+		for (int i = 0; i < NUMSECTORENTITYLISTS; i++) {
+			for (CPtrNode* node = lists[i].first; node; node = node->next) {
+				CEntity* ent = static_cast<CEntity*>(node->item);
+				if (ent->m_scanCode != currentScanCode) {
+					ent->m_scanCode = currentScanCode;
+					ms_tempVisibleEntities.push_back(ent);
+				}
+			}
+		}
+	}
+	if (ms_tempVisibleEntities.empty()) return;
+	TracyPlot("Priority Entities", static_cast<int64_t>(ms_tempVisibleEntities.size()));
 
-			if(IsEntityCullZoneVisible(ent)){
-				switch(SetupEntityVisibility(ent)){
-				case VIS_VISIBLE:
-					InsertEntityIntoList(ent);
-					break;
-				case VIS_INVISIBLE:
-					if(!IsGlass(ent->GetModelIndex()))
-						break;
-					// fall through
-				case VIS_OFFSCREEN:
-					dx = ms_vecCameraPosition.x - ent->GetPosition().x;
-					dy = ms_vecCameraPosition.y - ent->GetPosition().y;
-					if(dx > -65.0f && dx < 65.0f &&
-					   dy > -65.0f && dy < 65.0f &&
-					   ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
+	{
+		ZoneScopedN("Priority Process");
+		for (CEntity* ent : ms_tempVisibleEntities) {
+			if (IsEntityCullZoneVisible(ent)) {
+				switch (SetupEntityVisibility(ent)) {
+				case VIS_VISIBLE: InsertEntityIntoList(ent); break;
+				case VIS_INVISIBLE: if (!IsGlass(ent->GetModelIndex())) break; // fallthrough
+				case VIS_OFFSCREEN: {
+					const float dx = camPos.x - ent->GetPosition().x;
+					const float dy = camPos.y - ent->GetPosition().y;
+					if (ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1 && dx > -65.0f && dx < 65.0f && dy > -65.0f && dy < 65.0f)
 						ms_aInVisibleEntityPtrs[ms_nNoOfInVisibleEntities++] = ent;
 					break;
+				}
 				case VIS_STREAMME:
 					if(!CStreaming::ms_disableStreaming){
 						CStreaming::RequestModel(ent->GetModelIndex(), 0);
@@ -1627,35 +1606,13 @@ CRenderer::ScanSectorList_Priority(CPtrList *lists)
 					break;
 				}
 #ifndef MASTER
-				// actually missing in game
 				EntitiesRendered++;
-				switch(ent->GetType()){
-				case ENTITY_TYPE_BUILDING:
-					if(ent->bIsBIGBuilding)
-						RenderedBigBuildings++;
-					else
-						RenderedBuildings++;
-					break;
-				case ENTITY_TYPE_VEHICLE:
-					RenderedCars++;
-					break;
-				case ENTITY_TYPE_PED:
-					RenderedPeds++;
-					break;
-				case ENTITY_TYPE_OBJECT:
-					RenderedObjects++;
-					break;
-				case ENTITY_TYPE_DUMMY:
-					RenderedDummies++;
-					break;
-				}
 #endif
 			}else if(IsRoad(ent) && !CStreaming::ms_disableStreaming){
 				if(SetupEntityVisibility(ent) == VIS_STREAMME)
 					CStreaming::RequestModel(ent->GetModelIndex(), 0);
 			}else{
 #ifndef MASTER
-				// actually missing in game
 				EntitiesNotRendered++;
 #endif
 			}
@@ -1666,29 +1623,35 @@ CRenderer::ScanSectorList_Priority(CPtrList *lists)
 void
 CRenderer::ScanSectorList_Subway(CPtrList *lists)
 {
-	CPtrNode *node;
-	CPtrList *list;
-	CEntity *ent;
-	int i;
-	float dx, dy;
+	ZoneScoped;
+	const uint32 currentScanCode = CWorld::GetCurrentScanCode();
+	const CVector& camPos = ms_vecCameraPosition;
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
-		list = &lists[i];
-		for(node = list->first; node; node = node->next){
-			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
-				continue;	// already seen
-			ent->m_scanCode = CWorld::GetCurrentScanCode();
+	ms_tempVisibleEntities.clear();
+	{
+		ZoneScopedN("Subway Gather");
+		for (int i = 0; i < NUMSECTORENTITYLISTS; i++) {
+			for (CPtrNode* node = lists[i].first; node; node = node->next) {
+				CEntity* ent = static_cast<CEntity*>(node->item);
+				if (ent->m_scanCode != currentScanCode) {
+					ent->m_scanCode = currentScanCode;
+					ms_tempVisibleEntities.push_back(ent);
+				}
+			}
+		}
+	}
+	if (ms_tempVisibleEntities.empty()) return;
+	TracyPlot("Subway Entities", static_cast<int64_t>(ms_tempVisibleEntities.size()));
+
+	{
+		ZoneScopedN("Subway Process");
+		for (CEntity* ent : ms_tempVisibleEntities) {
 			switch(SetupEntityVisibility(ent)){
-			case VIS_VISIBLE:
-				InsertEntityIntoList(ent);
-				break;
+			case VIS_VISIBLE: InsertEntityIntoList(ent); break;
 			case VIS_OFFSCREEN:
-				dx = ms_vecCameraPosition.x - ent->GetPosition().x;
-				dy = ms_vecCameraPosition.y - ent->GetPosition().y;
-				if(dx > -65.0f && dx < 65.0f &&
-				   dy > -65.0f && dy < 65.0f &&
-				   ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
+				const float dx = camPos.x - ent->GetPosition().x;
+				const float dy = camPos.y - ent->GetPosition().y;
+				if(dx > -65.0f && dx < 65.0f && dy > -65.0f && dy < 65.0f && ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
 					ms_aInVisibleEntityPtrs[ms_nNoOfInVisibleEntities++] = ent;
 				break;
 			}
@@ -1699,21 +1662,31 @@ CRenderer::ScanSectorList_Subway(CPtrList *lists)
 void
 CRenderer::ScanSectorList_RequestModels(CPtrList *lists)
 {
-	CPtrNode *node;
-	CPtrList *list;
-	CEntity *ent;
-	int i;
+	ZoneScoped;
+	const uint32 currentScanCode = CWorld::GetCurrentScanCode();
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
-		list = &lists[i];
-		for(node = list->first; node; node = node->next){
-			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
-				continue;	// already seen
-			ent->m_scanCode = CWorld::GetCurrentScanCode();
+	ms_tempVisibleEntities.clear();
+	{
+		ZoneScopedN("RequestModels Gather");
+		for(int i = 0; i < NUMSECTORENTITYLISTS; i++){
+			for (CPtrNode* node = lists[i].first; node; node = node->next) {
+				CEntity* ent = static_cast<CEntity*>(node->item);
+				if (ent->m_scanCode != currentScanCode) {
+					ent->m_scanCode = currentScanCode;
+					ms_tempVisibleEntities.push_back(ent);
+				}
+			}
+		}
+	}
+	if (ms_tempVisibleEntities.empty()) return;
+	TracyPlot("RequestModels Entities", static_cast<int64_t>(ms_tempVisibleEntities.size()));
+
+	{
+		ZoneScopedN("RequestModels Process");
+		for (CEntity* ent : ms_tempVisibleEntities) {
 			if(IsEntityCullZoneVisible(ent))
-			if(ShouldModelBeStreamed(ent))
-				CStreaming::RequestModel(ent->GetModelIndex(), 0);
+				if(ShouldModelBeStreamed(ent))
+					CStreaming::RequestModel(ent->GetModelIndex(), 0);
 		}
 	}
 }
