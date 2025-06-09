@@ -5,7 +5,7 @@ class CQuaternion
 {
 public:
 	float x, y, z, w;
-	CQuaternion(void) {}
+	CQuaternion(void) = default;
 	CQuaternion(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 
 	float Magnitude(void) const { return Sqrt(x*x + y*y + z*z + w*w); }

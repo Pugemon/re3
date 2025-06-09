@@ -28,8 +28,8 @@ public:
 	PhoneState m_nState;
 	bool m_visibleToCam;
 
-	CPhone() { }
-	~CPhone() { }
+	CPhone() = default;
+	~CPhone() = default;
 };
 
 VALIDATE_SIZE(CPhone, 0x34);
@@ -46,8 +46,8 @@ public:
 	int32 m_nScriptPhonesMax;
 	CPhone m_aPhones[NUMPHONES];
 
-	CPhoneInfo() { }
-	~CPhoneInfo() { }
+	CPhoneInfo() = default;
+	~CPhoneInfo() = default;
 
 	int FindNearestFreePhone(CVector*);
 	bool PhoneAtThisPosition(CVector);

@@ -35,7 +35,7 @@ CFire::CFire()
 	m_fStrength = 0.8f;
 }
 
-CFire::~CFire() {}
+CFire::~CFire() = default;
 
 void
 CFire::ProcessFire(void)

@@ -3,10 +3,7 @@
 
 // TODO: reverse mobile code
 
-CPlayerName::CPlayerName()
-{
-	// TODO
-}
+CPlayerName::CPlayerName() = default;
 
 void
 CPlayerName::DisplayName(int)
@@ -14,10 +11,7 @@ CPlayerName::DisplayName(int)
 	// TODO
 }
 
-CRow::CRow()
-{
-	// TODO
-}
+CRow::CRow() = default;
 
 void
 CRow::SetLetter(int, wchar *)
@@ -25,10 +19,7 @@ CRow::SetLetter(int, wchar *)
 	// TODO
 }
 
-CGrid::CGrid()
-{
-	// TODO
-}
+CGrid::CGrid() = default;
 
 void
 CGrid::ProcessAnyLeftJustDown()

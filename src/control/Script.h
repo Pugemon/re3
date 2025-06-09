@@ -57,8 +57,8 @@ struct intro_script_rectangle
 	CRect m_sRect;
 	CRGBA m_sColor;
 	
-	intro_script_rectangle() { }
-	~intro_script_rectangle() { }
+	intro_script_rectangle() = default;
+	~intro_script_rectangle() = default;
 };
 
 VALIDATE_SIZE(intro_script_rectangle, 0x18);
@@ -87,8 +87,8 @@ struct intro_text_line
 	float m_fAtY;
 	wchar m_Text[SCRIPT_TEXT_MAX_LENGTH];
 
-	intro_text_line() { }
-	~intro_text_line() { }
+	intro_text_line() = default;
+	~intro_text_line() = default;
 	
 	void Reset()
 	{
@@ -122,7 +122,7 @@ struct script_sphere_struct
 	CVector m_vecCenter;
 	float m_fRadius;
 	
-	script_sphere_struct() { }
+	script_sphere_struct() = default;
 };
 
 struct CStoredLine
@@ -197,7 +197,7 @@ struct stuck_car_data
 	uint32 m_nStuckTime;
 	bool m_bStuck;
 
-	stuck_car_data() { }
+	stuck_car_data() = default;
 	void Reset();
 };
 

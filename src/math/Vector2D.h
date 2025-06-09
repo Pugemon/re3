@@ -4,7 +4,7 @@ class CVector2D
 {
 public:
 	float x, y;
-	CVector2D(void) {}
+	CVector2D(void) = default;
 	CVector2D(float x, float y) : x(x), y(y) {}
 	CVector2D(const CVector &v) : x(v.x), y(v.y) {}
 	float Heading(void) const { return Atan2(-x, y); }

@@ -14,8 +14,8 @@ public:
 	bool m_bActive;
 	bool m_bShattered;
 
-	CFallingGlassPane()  { }
-	~CFallingGlassPane() { }
+	CFallingGlassPane() = default;
+	~CFallingGlassPane() = default;
 
 	void Update(void);
 	void Render(void);

@@ -37,15 +37,9 @@ public:
 	RwRGBA    m_Color;
 	CParticle *m_pNext;
 	
-	CParticle()
-	{
-		;
-	}
+	CParticle() = default;
 	
-	~CParticle()
-	{
-		;
-	}
+	~CParticle() = default;
 
 	static float      ms_afRandTable[RAND_TABLE_SIZE];
 	static CParticle *m_pUnusedListHead;

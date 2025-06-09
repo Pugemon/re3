@@ -110,9 +110,7 @@ ALDeviceList::ALDeviceList()
 /* 
  * Exit call
  */
-ALDeviceList::~ALDeviceList()
-{
-}
+ALDeviceList::~ALDeviceList() = default;
 
 /*
  * Returns the number of devices in the complete device list

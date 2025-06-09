@@ -31,6 +31,6 @@ public:
 	bool m_bReported;
 	bool m_bPoliceDoesntCare;
 
-	CCrimeBeingQd() { };
-	~CCrimeBeingQd() { };
+	CCrimeBeingQd() = default;
+	~CCrimeBeingQd() = default;
 };

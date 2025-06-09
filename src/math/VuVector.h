@@ -4,7 +4,7 @@ class TYPEALIGN(16) CVuVector : public CVector
 {
 public:
 	float w;
-	CVuVector(void) {}
+	CVuVector(void) = default;
 	CVuVector(float x, float y, float z) : CVector(x, y, z) {}
 	CVuVector(float x, float y, float z, float w) : CVector(x, y, z), w(w) {}
 	CVuVector(const CVector &v) : CVector(v.x, v.y, v.z) {}

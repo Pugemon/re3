@@ -303,15 +303,9 @@ IsThisTrackAt16KHz(uint32 track)
 	return track == STREAMED_SOUND_RADIO_CHAT;
 }
 
-cSampleManager::cSampleManager(void)
-{
-	;
-}
+cSampleManager::cSampleManager(void) = default;
 
-cSampleManager::~cSampleManager(void)
-{
-	
-}
+cSampleManager::~cSampleManager(void) = default;
 
 void cSampleManager::SetSpeakerConfig(int32 nConfig)
 {

@@ -3,7 +3,7 @@
 class CVector : public RwV3d
 {
 public:
-	CVector(void) {}
+	CVector(void) = default;
 	CVector(float x, float y, float z)
 	{
 		this->x = x;

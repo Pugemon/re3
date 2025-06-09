@@ -243,7 +243,7 @@ public:
 #endif
 	};
 	
-	CRGBA(void) { }
+	CRGBA(void) = default; //-V832
 	CRGBA(uint8 r, uint8 g, uint8 b, uint8 a) : r(r), g(g), b(b), a(a) { }
 	
 	bool operator ==(const CRGBA &right)

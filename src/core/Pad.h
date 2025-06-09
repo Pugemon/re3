@@ -163,8 +163,8 @@ public:
 #ifdef DETECT_PAD_INPUT_SWITCH
 	static bool IsAffectedByController;
 #endif
-	CPad() { }
-	~CPad() { }
+	CPad() = default;
+	~CPad() = default;
 
 	static bool bDisplayNoControllerMessage;
 	static bool bObsoleteControllerMessage;

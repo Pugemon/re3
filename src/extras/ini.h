@@ -154,7 +154,7 @@ namespace mINI
 	public:
 		using const_iterator = typename T_DataContainer::const_iterator;
 
-		INIMap() { }
+		INIMap() = default;
 
 		INIMap(INIMap const& other)
 		{
@@ -379,7 +379,7 @@ namespace mINI
 				lineData = std::make_shared<T_LineData>();
 			}
 		}
-		~INIReader() { }
+		~INIReader() = default;
 
 		bool operator>>(INIStructure& data)
 		{
@@ -434,7 +434,7 @@ namespace mINI
 		{
 			fileWriteStream.open(filename, std::ios::out | std::ios::binary);
 		}
-		~INIGenerator() { }
+		~INIGenerator() = default;
 
 		bool operator<<(INIStructure const& data)
 		{
@@ -661,7 +661,7 @@ namespace mINI
 		: filename(filename)
 		{
 		}
-		~INIWriter() { }
+		~INIWriter() = default;
 
 		bool operator<<(INIStructure& data)
 		{
@@ -720,7 +720,7 @@ namespace mINI
 		: filename(filename)
 		{ }
 
-		~INIFile() { }
+		~INIFile() = default;
 
 		bool read(INIStructure& data) const
 		{

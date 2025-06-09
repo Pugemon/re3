@@ -73,7 +73,7 @@ public:
 		Attractor attractor;
 	};
 
-	C2dEffect(void) {}
+	C2dEffect(void) = default;
 	void Shutdown(void){
 		if(type == EFFECT_LIGHT){
 			if(light.corona)

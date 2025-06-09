@@ -516,7 +516,7 @@ struct CCFOSelect : CCFO
 	ChangeFunc changeFunc;
 	bool disableIfGameLoaded;
 
-	CCFOSelect() {};
+	CCFOSelect() = default;
 	CCFOSelect(int8* value, const char* saveCat, const char* save, const char** rightTexts, int8 numRightTexts, bool onlyApplyOnEnter, ChangeFunc changeFunc = nil, bool disableIfGameLoaded = false){
 		this->value = value;
 		if (value)
@@ -539,7 +539,7 @@ struct CCFOSlider : CCFO
 	float min;
 	float max;
 
-	CCFOSlider() {};
+	CCFOSlider() = default;
 	CCFOSlider(float* value, const char* saveCat, const char* save, float min, float max, ChangeFuncFloat changeFunc = nil){
 		this->value = value;
 		this->saveCat = saveCat;
@@ -555,7 +555,7 @@ struct CCFODynamic : CCFO
 	DrawFunc drawFunc;
 	ButtonPressFunc buttonPressFunc;
 
-	CCFODynamic() {};
+	CCFODynamic() = default;
 	CCFODynamic(int8* value, const char* saveCat, const char* save, DrawFunc drawFunc, ButtonPressFunc buttonPressFunc){
 		this->value = value;
 		this->saveCat = saveCat;

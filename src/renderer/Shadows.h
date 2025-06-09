@@ -48,8 +48,7 @@ public:
 	} m_nFlags;
 	RwTexture *m_pTexture;
 
-    CStoredShadow()
-	{  }
+    CStoredShadow() = default;
 };
 
 VALIDATE_SIZE(CStoredShadow, 0x30);
@@ -63,8 +62,7 @@ public:
 	uint8 m_aV[7];
 	CPolyBunch *m_pNext;
 
-    CPolyBunch()
-	{  }
+    CPolyBunch() = default;
 };
 
 VALIDATE_SIZE(CPolyBunch, 0x6C);
@@ -90,8 +88,7 @@ public:
 	bool m_bTemp;
 	RwTexture *m_pTexture;
 
-	CStaticShadow()
-	{  }
+	CStaticShadow() = default;
 
 	void Free();
 };
@@ -115,8 +112,7 @@ public:
 	uint32 m_nLifeTime;
 	RwTexture *m_pTexture;
 
-	CPermanentShadow()
-	{  }
+	CPermanentShadow() = default;
 };
 
 VALIDATE_SIZE(CPermanentShadow, 0x38);
