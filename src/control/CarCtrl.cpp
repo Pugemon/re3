@@ -859,10 +859,11 @@ CCarCtrl::FindMaximumSpeedForThisCarInTraffic(CVehicle* pVehicle)
 	if (pVehicle->AutoPilot.m_nDrivingStyle == DRIVINGSTYLE_AVOID_CARS ||
 		pVehicle->AutoPilot.m_nDrivingStyle == DRIVINGSTYLE_PLOUGH_THROUGH)
 		return pVehicle->AutoPilot.m_nCruiseSpeed;
-	float left = pVehicle->GetPosition().x - DISTANCE_TO_SCAN_FOR_DANGER;
-	float right = pVehicle->GetPosition().x + DISTANCE_TO_SCAN_FOR_DANGER;
-	float top = pVehicle->GetPosition().y - DISTANCE_TO_SCAN_FOR_DANGER;
-	float bottom = pVehicle->GetPosition().y + DISTANCE_TO_SCAN_FOR_DANGER;
+	auto& pVehiclePos = pVehicle->GetPosition();
+	float left = pVehiclePos.x - DISTANCE_TO_SCAN_FOR_DANGER;
+	float right = pVehiclePos.x + DISTANCE_TO_SCAN_FOR_DANGER;
+	float top = pVehiclePos.y - DISTANCE_TO_SCAN_FOR_DANGER;
+	float bottom = pVehiclePos.y + DISTANCE_TO_SCAN_FOR_DANGER;
 	int xstart = Max(0, CWorld::GetSectorIndexX(left));
 	int xend = Min(NUMSECTORS_X - 1, CWorld::GetSectorIndexX(right));
 	int ystart = Max(0, CWorld::GetSectorIndexY(top));
@@ -893,10 +894,11 @@ void
 CCarCtrl::ScanForPedDanger(CVehicle* pVehicle)
 {
 	bool storedSlowDownFlag = pVehicle->AutoPilot.m_bSlowedDownBecauseOfPeds;
-	float left = pVehicle->GetPosition().x - DISTANCE_TO_SCAN_FOR_DANGER;
-	float right = pVehicle->GetPosition().x + DISTANCE_TO_SCAN_FOR_DANGER;
-	float top = pVehicle->GetPosition().y - DISTANCE_TO_SCAN_FOR_DANGER;
-	float bottom = pVehicle->GetPosition().y + DISTANCE_TO_SCAN_FOR_DANGER;
+	auto pVehiclePos = pVehicle->GetPosition();
+	float left = pVehiclePos.x - DISTANCE_TO_SCAN_FOR_DANGER;
+	float right = pVehiclePos.x + DISTANCE_TO_SCAN_FOR_DANGER;
+	float top = pVehiclePos.y - DISTANCE_TO_SCAN_FOR_DANGER;
+	float bottom = pVehiclePos.y + DISTANCE_TO_SCAN_FOR_DANGER;
 	int xstart = Max(0, CWorld::GetSectorIndexX(left));
 	int xend = Min(NUMSECTORS_X - 1, CWorld::GetSectorIndexX(right));
 	int ystart = Max(0, CWorld::GetSectorIndexY(top));
@@ -1017,7 +1019,7 @@ void CCarCtrl::SlowCarDownForPedsSectorList(CPtrList& lst, CVehicle* pVehicle, f
 							pPed->SetMoveState(PEDMOVE_RUN);
 						}
 					}else{
-						CPlayerPed* pPlayerPed = (CPlayerPed*)pPed;
+						auto* pPlayerPed = static_cast<CPlayerPed *>(pPed); // NOLINT(*-pro-type-static-cast-downcast)
 						if (pPlayerPed->IsPlayer() && dotDirection < frontSafe &&
 						  pPlayerPed->IsPedInControl() &&
 						  pPlayerPed->m_fMoveSpeed < 1.0f && !pPlayerPed->bIsLooking &&
@@ -1025,11 +1027,18 @@ void CCarCtrl::SlowCarDownForPedsSectorList(CPtrList& lst, CVehicle* pVehicle, f
 							pPlayerPed->AnnoyPlayerPed(false);
 							pPlayerPed->SetLookFlag(pVehicle, true);
 							pPlayerPed->SetLookTimer(1500);
-							if (pPlayerPed->GetWeapon()->m_eWeaponType == WEAPONTYPE_UNARMED ||
-								pPlayerPed->GetWeapon()->m_eWeaponType == WEAPONTYPE_BASEBALLBAT ||
-								pPlayerPed->GetWeapon()->m_eWeaponType == WEAPONTYPE_COLT45 ||
-								pPlayerPed->GetWeapon()->m_eWeaponType == WEAPONTYPE_UZI) {
-								pPlayerPed->bShakeFist = true;
+							const eWeaponType currentWeapon = pPlayerPed->GetWeapon()->m_eWeaponType;
+							switch (currentWeapon)
+							{
+							case WEAPONTYPE_UNARMED:
+							case WEAPONTYPE_BASEBALLBAT:
+							case WEAPONTYPE_COLT45:
+							case WEAPONTYPE_UZI:
+							    pPlayerPed->bShakeFist = true;
+								break;
+							default:
+								pPlayerPed->bShakeFist = false;
+								break;
 							}
 						}
 					}
@@ -1239,10 +1248,11 @@ float CCarCtrl::TestCollisionBetween2MovingRects(CVehicle* pVehicleA, CVehicle* 
 float CCarCtrl::FindAngleToWeaveThroughTraffic(CVehicle* pVehicle, CPhysical* pTarget, float angleToTarget, float angleForward)
 {
 	float distanceToTest = Min(2.0f, pVehicle->GetMoveSpeed().Magnitude2D() * 2.5f + 1.0f) * 12.0f;
-	float left = pVehicle->GetPosition().x - distanceToTest;
-	float right = pVehicle->GetPosition().x + distanceToTest;
-	float top = pVehicle->GetPosition().y - distanceToTest;
-	float bottom = pVehicle->GetPosition().y + distanceToTest;
+	auto& pVehiclePos = pVehicle->GetPosition();
+	float left = pVehiclePos.x - distanceToTest;
+	float right = pVehiclePos.x + distanceToTest;
+	float top = pVehiclePos.y - distanceToTest;
+	float bottom = pVehiclePos.y + distanceToTest;
 	int xstart = Max(0, CWorld::GetSectorIndexX(left));
 	int xend = Min(NUMSECTORS_X - 1, CWorld::GetSectorIndexX(right));
 	int ystart = Max(0, CWorld::GetSectorIndexY(top));
@@ -1295,87 +1305,119 @@ float CCarCtrl::FindAngleToWeaveThroughTraffic(CVehicle* pVehicle, CPhysical* pT
 
 void CCarCtrl::WeaveThroughCarsSectorList(CPtrList& lst, CVehicle* pVehicle, CPhysical* pTarget, float x_inf, float y_inf, float x_sup, float y_sup, float* pAngleToWeaveLeft, float* pAngleToWeaveRight)
 {
+	// --- Оптимизация №1: Выносим инварианты из цикла ---
+	const uint32 currentScanCode = CWorld::GetCurrentScanCode();
+	const float ourZ = pVehicle->GetPosition().z;
+
 	for (CPtrNode* pNode = lst.first; pNode != nil; pNode = pNode->next) {
-		CVehicle* pTestVehicle = (CVehicle*)pNode->item;
-		if (pTestVehicle->m_scanCode == CWorld::GetCurrentScanCode())
+		auto* pTestVehicle = static_cast<CVehicle *>(pNode->item);
+
+		if (pTestVehicle->m_scanCode == currentScanCode || !pTestVehicle->bUsesCollision || pTestVehicle == pTarget || pTestVehicle == pVehicle)
 			continue;
-		if (!pTestVehicle->bUsesCollision)
+
+		const CVector& testVehBoundCentre = pTestVehicle->GetBoundCentre();
+
+		if (testVehBoundCentre.x < x_inf || testVehBoundCentre.x > x_sup ||
+		    testVehBoundCentre.y < y_inf || testVehBoundCentre.y > y_sup)
 			continue;
-		if (pTestVehicle == pTarget)
+
+		if (Abs(pTestVehicle->GetPosition().z - ourZ) >= VEHICLE_HEIGHT_DIFF_TO_CONSIDER_WEAVING)
 			continue;
-		pTestVehicle->m_scanCode = CWorld::GetCurrentScanCode();
-		if (pTestVehicle->GetBoundCentre().x < x_inf || pTestVehicle->GetBoundCentre().x > x_sup)
-			continue;
-		if (pTestVehicle->GetBoundCentre().y < y_inf || pTestVehicle->GetBoundCentre().y > y_sup)
-			continue;
-		if (Abs(pTestVehicle->GetPosition().z - pVehicle->GetPosition().z) >= VEHICLE_HEIGHT_DIFF_TO_CONSIDER_WEAVING)
-			continue;
-		if (pTestVehicle != pVehicle)
-			WeaveForOtherCar(pTestVehicle, pVehicle, pAngleToWeaveLeft, pAngleToWeaveRight);
+
+		pTestVehicle->m_scanCode = currentScanCode;
+
+		WeaveForOtherCar(pTestVehicle, pVehicle, pAngleToWeaveLeft, pAngleToWeaveRight);
 	}
 }
 
 void CCarCtrl::WeaveForOtherCar(CEntity* pOtherEntity, CVehicle* pVehicle, float* pAngleToWeaveLeft, float* pAngleToWeaveRight)
 {
-	if (pVehicle->AutoPilot.m_nCarMission == MISSION_RAMPLAYER_CLOSE && pOtherEntity == FindPlayerVehicle())
-		return;
-	if (pVehicle->AutoPilot.m_nCarMission == MISSION_RAMCAR_CLOSE && pOtherEntity == pVehicle->AutoPilot.m_pTargetCar)
-		return;
-	CVehicle* pOtherCar = (CVehicle*)pOtherEntity;
-	CVector2D vecDiff = pOtherCar->GetPosition() - pVehicle->GetPosition();
-	float angleBetweenVehicles = CGeneral::GetATanOfXY(vecDiff.x, vecDiff.y);
-	float distance = vecDiff.Magnitude();
-	if (distance < 1.0f)
-		return;
-	if (DotProduct2D(pVehicle->GetMoveSpeed() - pOtherCar->GetMoveSpeed(), vecDiff) * 110.0f -
-	  pOtherCar->GetModelInfo()->GetColModel()->boundingSphere.radius -
-	  pVehicle->GetModelInfo()->GetColModel()->boundingSphere.radius < distance)
-		return;
-	CVector2D forward = pVehicle->GetForward();
-	forward.NormaliseSafe();
-	float forwardAngle = CGeneral::GetATanOfXY(forward.x, forward.y);
-	float angleDiff = angleBetweenVehicles - forwardAngle;
-	float lenProjection = ABS(pOtherCar->GetColModel()->boundingBox.max.y * Sin(angleDiff));
-	float widthProjection = ABS(pOtherCar->GetColModel()->boundingBox.max.x * Cos(angleDiff));
-	float lengthToEvade = (2 * (lenProjection + widthProjection) + WIDTH_COEF_TO_WEAVE_SAFELY * 2 * pVehicle->GetColModel()->boundingBox.max.x) / distance;
-	float diffToLeftAngle = LimitRadianAngle(angleBetweenVehicles - *pAngleToWeaveLeft);
-	diffToLeftAngle = ABS(diffToLeftAngle);
-	float angleToWeave = lengthToEvade / 2;
-	if (diffToLeftAngle < angleToWeave){
-		*pAngleToWeaveLeft = angleBetweenVehicles - angleToWeave;
-		while (*pAngleToWeaveLeft < -PI)
-			*pAngleToWeaveLeft += TWOPI;
-	}
-	float diffToRightAngle = LimitRadianAngle(angleBetweenVehicles - *pAngleToWeaveRight);
-	diffToRightAngle = ABS(diffToRightAngle);
-	if (diffToRightAngle < angleToWeave){
-		*pAngleToWeaveRight = angleBetweenVehicles + angleToWeave;
-		while (*pAngleToWeaveRight > PI)
-			*pAngleToWeaveRight -= TWOPI;
-	}
+
+    if ((pVehicle->AutoPilot.m_nCarMission == MISSION_RAMPLAYER_CLOSE && pOtherEntity == FindPlayerVehicle()) ||
+        (pVehicle->AutoPilot.m_nCarMission == MISSION_RAMCAR_CLOSE && pOtherEntity == pVehicle->AutoPilot.m_pTargetCar))
+        return;
+
+    auto *pOtherCar = static_cast<CVehicle *>(pOtherEntity); // NOLINT(*-pro-type-static-cast-downcast)
+    const CColModel *pOurCol = pVehicle->GetColModel();
+    const CColModel * pOtherCol = pOtherCar->GetColModel();
+
+
+    const CVector2D ourPos = pVehicle->GetPosition();
+    const CVector2D otherPos = pOtherCar->GetPosition();
+    const CVector2D vecDiff = otherPos - ourPos;
+
+    const float distSqr = vecDiff.MagnitudeSqr();
+    if (distSqr < 1.0f) // 1.0f * 1.0f
+        return;
+
+    const float combinedRadius = pOtherCol->boundingSphere.radius + pOurCol->boundingSphere.radius;
+    const CVector2D relativeSpeed = pVehicle->GetMoveSpeed() - pOtherCar->GetMoveSpeed();
+    const float closingSpeed = DotProduct2D(relativeSpeed, vecDiff);
+
+    if (closingSpeed * 110.0f - combinedRadius < Sqrt(distSqr))
+        return;
+
+
+    const float distance = Sqrt(distSqr);
+    const float angleBetweenVehicles = CGeneral::GetATanOfXY(vecDiff.x, vecDiff.y);
+
+    CVector2D forward = pVehicle->GetForward();
+    forward.NormaliseSafe();
+    const float forwardAngle = CGeneral::GetATanOfXY(forward.x, forward.y);
+    const float angleDiff = NormalizeAngle(angleBetweenVehicles - forwardAngle);
+
+    const float sinAngle = Sin(angleDiff);
+    const float cosAngle = Cos(angleDiff);
+
+    const float projectedLength = Abs(pOtherCol->boundingBox.max.y * sinAngle);
+    const float projectedWidth  = Abs(pOtherCol->boundingBox.max.x * cosAngle);
+
+    const float ourWidth = pOurCol->boundingBox.max.x;
+    const float totalWidthToEvade = 2.0f * (projectedLength + projectedWidth) + WIDTH_COEF_TO_WEAVE_SAFELY * 2.0f * ourWidth;
+
+    const float angleToWeave = totalWidthToEvade / (2.0f * distance);
+
+
+    if (ABS(NormalizeAngle(angleBetweenVehicles - *pAngleToWeaveLeft)) < angleToWeave) {
+        *pAngleToWeaveLeft = NormalizeAngle(angleBetweenVehicles - angleToWeave);
+    }
+
+    if (ABS(NormalizeAngle(angleBetweenVehicles - *pAngleToWeaveRight)) < angleToWeave) {
+        *pAngleToWeaveRight = NormalizeAngle(angleBetweenVehicles + angleToWeave);
+    }
 }
 
 void CCarCtrl::WeaveThroughPedsSectorList(CPtrList& lst, CVehicle* pVehicle, CPhysical* pTarget, float x_inf, float y_inf, float x_sup, float y_sup, float* pAngleToWeaveLeft, float* pAngleToWeaveRight)
 {
-	for (CPtrNode* pNode = lst.first; pNode != nil; pNode = pNode->next) {
-		CPed* pPed = (CPed*)pNode->item;
-		if (pPed->m_scanCode == CWorld::GetCurrentScanCode())
-			continue;
-		if (!pPed->bUsesCollision)
-			continue;
-		if (pPed == pTarget)
-			continue;
-		pPed->m_scanCode = CWorld::GetCurrentScanCode();
-		if (pPed->GetPosition().x < x_inf || pPed->GetPosition().x > x_sup)
-			continue;
-		if (pPed->GetPosition().y < y_inf || pPed->GetPosition().y > y_sup)
-			continue;
-		if (Abs(pPed->GetPosition().z - pVehicle->GetPosition().z) >= PED_HEIGHT_DIFF_TO_CONSIDER_WEAVING)
-			continue;
-		if (pPed->m_pCurSurface != pVehicle)
-			WeaveForPed(pPed, pVehicle, pAngleToWeaveLeft, pAngleToWeaveRight);
-	}
+	// Hoist loop-invariant values to avoid repeated function calls inside the loop.
+	const uint32 currentScanCode = CWorld::GetCurrentScanCode();
+	const float ourZ = pVehicle->GetPosition().z;
 
+	for (CPtrNode* pNode = lst.first; pNode != nil; pNode = pNode->next) {
+		auto pPed = static_cast<CPed*>(pNode->item);
+
+		if (pPed->m_scanCode == currentScanCode || !pPed->bUsesCollision || pPed == pTarget)
+			continue;
+
+		// Cache GetPosition() result as it's used multiple times for the same ped.
+		const CVector& pedPos = pPed->GetPosition();
+
+		if (pedPos.x < x_inf || pedPos.x > x_sup ||
+		    pedPos.y < y_inf || pedPos.y > y_sup)
+			continue;
+
+		if (Abs(pedPos.z - ourZ) >= PED_HEIGHT_DIFF_TO_CONSIDER_WEAVING)
+			continue;
+
+		if (pPed->m_pCurSurface == pVehicle)
+			continue;
+
+		// Defer state modification until all checks have passed to avoid
+		// unnecessary writes for peds that are ultimately skipped.
+		pPed->m_scanCode = currentScanCode;
+
+		WeaveForPed(pPed, pVehicle, pAngleToWeaveLeft, pAngleToWeaveRight);
+	}
 }
 void CCarCtrl::WeaveForPed(CEntity* pOtherEntity, CVehicle* pVehicle, float* pAngleToWeaveLeft, float* pAngleToWeaveRight)
 {

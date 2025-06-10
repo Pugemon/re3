@@ -323,6 +323,14 @@ inline float sq(float x) { return x*x; }
 #define DEGTORAD(x) ((x) * PI / 180.0f)
 #define RADTODEG(x) ((x) * 180.0f / PI)
 
+inline float NormalizeAngle(float angle)
+{
+	angle = fmodf(angle + PI, TWOPI);
+	if (angle < 0.0f)
+		angle += TWOPI;
+	return angle - PI;
+}
+
 #ifdef USE_PS2_RAND
 #define MYRAND_MAX		65535
 #else

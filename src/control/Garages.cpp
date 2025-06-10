@@ -7,8 +7,8 @@
 #include "Boat.h"
 #endif
 #include "DMAudio.h"
-#include "General.h"
 #include "Font.h"
+#include "General.h"
 #include "HandlingMgr.h"
 #include "Hud.h"
 #include "Messages.h"
@@ -17,6 +17,8 @@
 #include "Particle.h"
 #include "PlayerPed.h"
 #include "Replay.h"
+#include "SaveBuf.h"
+#include "Script.h"
 #include "Stats.h"
 #include "Streaming.h"
 #include "Text.h"
@@ -24,7 +26,6 @@
 #include "Vehicle.h"
 #include "Wanted.h"
 #include "World.h"
-#include "SaveBuf.h"
 
 #define ROTATED_DOOR_OPEN_SPEED (0.015f)
 #define ROTATED_DOOR_CLOSE_SPEED (0.02f)
@@ -1167,75 +1168,89 @@ void CGarage::Update()
 
 bool CGarage::IsStaticPlayerCarEntirelyInside()
 {
-	if (!FindPlayerVehicle())
-		return false;
-	if (!FindPlayerVehicle()->IsCar())
-		return false;
-	if (FindPlayerPed()->GetPedState() != PED_DRIVING)
-		return false;
-	if (FindPlayerPed()->m_objective == OBJECTIVE_LEAVE_CAR)
-		return false;
-	CVehicle* pVehicle = FindPlayerVehicle();
-	if (pVehicle->GetPosition().x < m_fX1 || pVehicle->GetPosition().x > m_fX2 ||
-		pVehicle->GetPosition().y < m_fY1 || pVehicle->GetPosition().y > m_fY2)
-		return false;
-	if (Abs(pVehicle->GetSpeed().x) > 0.01f ||
-		Abs(pVehicle->GetSpeed().y) > 0.01f ||
-		Abs(pVehicle->GetSpeed().z) > 0.01f)
-		return false;
-	if (pVehicle->GetSpeed().MagnitudeSqr() > SQR(0.01f))
-		return false;
-	return IsEntityEntirelyInside3D(pVehicle, 0.0f);
+    CVehicle* pVehicle = FindPlayerVehicle();
+    CPed* pPlayerPed = FindPlayerPed();
+
+    // The rest of the function depends on these pointers, so check them first.
+    if (!pVehicle || !pPlayerPed)
+        return false;
+
+    // --- Perform all initial state checks using the cached pointers ---
+    if (!pVehicle->IsCar())
+        return false;
+
+    if (pPlayerPed->GetPedState() != PED_DRIVING || pPlayerPed->m_objective == OBJECTIVE_LEAVE_CAR)
+        return false;
+
+    // --- AABB check for the garage area ---
+    const CVector& vehPos = pVehicle->GetPosition();
+    if (vehPos.x < m_fX1 || vehPos.x > m_fX2 ||
+        vehPos.y < m_fY1 || vehPos.y > m_fY2)
+        return false;
+
+    // --- Optimization: The MagnitudeSqr check is sufficient and more efficient ---
+    // It makes the individual component checks (Abs(speed.x) etc.) redundant.
+    if (pVehicle->GetSpeed().MagnitudeSqr() > SQR(0.01f))
+        return false;
+
+    // The final, most expensive check is performed last by calling the public 3D version.
+    return IsEntityEntirelyInside3D(pVehicle, 0.0f);
 }
 
-bool CGarage::IsEntityEntirelyInside(CEntity * pEntity)
+bool CGarage::IsEntityEntirelyInside(CEntity* pEntity)
 {
-	if (pEntity->GetPosition().x < m_fX1 || pEntity->GetPosition().x > m_fX2 ||
-		pEntity->GetPosition().y < m_fY1 || pEntity->GetPosition().y > m_fY2)
-		return false;
-	CColModel* pColModel = pEntity->GetColModel();
-	for (int i = 0; i < pColModel->numSpheres; i++) {
-		CVector pos = pEntity->GetMatrix() * pColModel->spheres[i].center;
-		float radius = pColModel->spheres[i].radius;
-		if (pos.x - radius < m_fX1 || pos.x + radius > m_fX2 ||
-			pos.y - radius < m_fY1 || pos.y + radius > m_fY2)
-			return false;
-	}
-	return true;
+    const CVector& entityPos = pEntity->GetPosition();
+    if (entityPos.x < m_fX1 || entityPos.x > m_fX2 ||
+        entityPos.y < m_fY1 || entityPos.y > m_fY2)
+        return false;
+
+    // This is a 2D check, so Z margin is set to a very large number
+    // to effectively ignore the Z-axis checks in the helper function.
+    return IsEntityBoundingSpheresInside(pEntity, 0.0f, 0.0f, 10000.0f);
 }
 
-bool CGarage::IsEntityEntirelyInside3D(CEntity * pEntity, float fMargin)
+bool CGarage::IsEntityEntirelyInside3D(CEntity* pEntity, float fMargin)
 {
-	if (pEntity->GetPosition().x < m_fX1 - fMargin || pEntity->GetPosition().x > m_fX2 + fMargin ||
-		pEntity->GetPosition().y < m_fY1 - fMargin || pEntity->GetPosition().y > m_fY2 + fMargin ||
-		pEntity->GetPosition().z < m_fZ1 - fMargin || pEntity->GetPosition().z > m_fZ2 + fMargin)
-		return false;
-	CColModel* pColModel = pEntity->GetColModel();
-	for (int i = 0; i < pColModel->numSpheres; i++) {
-		CVector pos = pEntity->GetMatrix() * pColModel->spheres[i].center;
-		float radius = pColModel->spheres[i].radius;
-		if (pos.x + radius < m_fX1 - fMargin || pos.x - radius > m_fX2 + fMargin ||
-			pos.y + radius < m_fY1 - fMargin || pos.y - radius > m_fY2 + fMargin ||
-			pos.z + radius < m_fZ1 - fMargin || pos.z - radius > m_fZ2 + fMargin)
-			return false;
-	}
-	return true;
+    const CVector& entityPos = pEntity->GetPosition();
+    if (entityPos.x < m_fX1 - fMargin || entityPos.x > m_fX2 + fMargin ||
+        entityPos.y < m_fY1 - fMargin || entityPos.y > m_fY2 + fMargin ||
+        entityPos.z < m_fZ1 - fMargin || entityPos.z > m_fZ2 + fMargin)
+        return false;
+
+    return IsEntityBoundingSpheresInside(pEntity, fMargin, fMargin, fMargin);
 }
 
-bool CGarage::IsEntityEntirelyOutside(CEntity * pEntity, float fMargin)
+bool CGarage::IsEntityEntirelyOutside(CEntity* pEntity, float fMargin)
 {
-	if (pEntity->GetPosition().x > m_fX1 - fMargin && pEntity->GetPosition().x < m_fX2 + fMargin &&
-		pEntity->GetPosition().y > m_fY1 - fMargin && pEntity->GetPosition().y < m_fY2 + fMargin)
-		return false;
-	CColModel* pColModel = pEntity->GetColModel();
-	for (int i = 0; i < pColModel->numSpheres; i++) {
-		CVector pos = pEntity->GetMatrix() * pColModel->spheres[i].center;
-		float radius = pColModel->spheres[i].radius;
-		if (pos.x + radius > m_fX1 - fMargin && pos.x - radius < m_fX2 + fMargin &&
-			pos.y + radius > m_fY1 - fMargin && pos.y - radius < m_fY2 + fMargin)
-			return false;
-	}
-	return true;
+    // Optimization: The logic for "entirely outside" is complex to check directly.
+    // It's much simpler and often faster to check the inverse: "does any part of the entity INTERSECT with the garage?"
+    // If no part intersects, then it must be entirely outside.
+
+    CColModel* pColModel = pEntity->GetColModel();
+    const CMatrix& entityMatrix = pEntity->GetMatrix();
+
+    // Check if the main bounding box intersects first for a quick rejection.
+    const CVector& entityPos = pEntity->GetPosition();
+    if (entityPos.x + pColModel->boundingSphere.radius > m_fX1 - fMargin && entityPos.x - pColModel->boundingSphere.radius < m_fX2 + fMargin &&
+        entityPos.y + pColModel->boundingSphere.radius > m_fY1 - fMargin && entityPos.y - pColModel->boundingSphere.radius < m_fY2 + fMargin)
+    {
+        // The main bounding sphere is roughly in the area, so we need to check more accurately.
+        for (int i = 0; i < pColModel->numSpheres; i++) {
+            CVector sphereWorldPos = entityMatrix * pColModel->spheres[i].center;
+            float radius = pColModel->spheres[i].radius;
+
+            // Check for intersection: if any sphere intersects the garage box, the entity is NOT entirely outside.
+            if (sphereWorldPos.x + radius > m_fX1 - fMargin && sphereWorldPos.x - radius < m_fX2 + fMargin &&
+                sphereWorldPos.y + radius > m_fY1 - fMargin && sphereWorldPos.y - radius < m_fY2 + fMargin)
+            {
+                return false; // Found an intersection, so it's not entirely outside.
+            }
+        }
+    }
+
+    // If we looped through all spheres and none of them (and not even the main bounding box) intersected,
+    // the entity is confirmed to be entirely outside.
+    return true;
 }
 
 bool CGarage::IsGarageEmpty()
@@ -1359,9 +1374,10 @@ int32 CGarage::CountCarsWithCenterPointWithinGarage(CEntity * pException)
 		CVehicle* pVehicle = CPools::GetVehiclePool()->GetSlot(i);
 		if (!pVehicle || pVehicle == pException)
 			continue;
-		if (pVehicle->GetPosition().x > m_fX1 && pVehicle->GetPosition().x < m_fX2 &&
-			pVehicle->GetPosition().y > m_fY1 && pVehicle->GetPosition().y < m_fY2 &&
-			pVehicle->GetPosition().z > m_fZ1 && pVehicle->GetPosition().z < m_fZ2)
+		auto vehPos = pVehicle->GetPosition();
+		if (vehPos.x > m_fX1 && vehPos.x < m_fX2 &&
+			vehPos.y > m_fY1 && vehPos.y < m_fY2 &&
+			vehPos.z > m_fZ1 && vehPos.z < m_fZ2)
 			total++;
 	}
 	return total;
@@ -1439,7 +1455,7 @@ void CGarages::PrintMessages()
 #endif
 
 			CFont::SetColor(CRGBA(89, 115, 150, 255));
-				
+
 #ifdef FIX_BUGS
 			CFont::PrintString(SCREEN_WIDTH / 2, y_offset - SCREEN_SCALE_Y(40.0f), gUString);
 #else
@@ -1507,26 +1523,29 @@ void CGarage::BuildRotatedDoorMatrix(CEntity * pDoor, float fPosition)
 void CGarage::UpdateCrusherAngle()
 {
 	RefreshDoorPointers(false);
-	m_pDoor2->GetMatrix().SetRotateXOnly(TWOPI - m_fDoorPos);
-	m_pDoor2->GetMatrix().UpdateRW();
+	auto door2Matrix = m_pDoor2->GetMatrix();
+	door2Matrix.SetRotateXOnly(TWOPI - m_fDoorPos);
+	door2Matrix.UpdateRW();
 	m_pDoor2->UpdateRwFrame();
 }
 
 void CGarage::UpdateCrusherShake(float X, float Y)
 {
 	RefreshDoorPointers(false);
-	m_pDoor1->GetMatrix().GetPosition().x += X;
-	m_pDoor1->GetMatrix().GetPosition().y += Y;
-	m_pDoor1->GetMatrix().UpdateRW();
+	auto door1Matrix = m_pDoor1->GetMatrix();
+	auto door2Matrix = m_pDoor2->GetMatrix();
+	door1Matrix.GetPosition().x += X;
+	door1Matrix.GetPosition().y += Y;
+	door1Matrix.UpdateRW();
 	m_pDoor1->UpdateRwFrame();
-	m_pDoor1->GetMatrix().GetPosition().x -= X;
-	m_pDoor1->GetMatrix().GetPosition().y -= Y;
-	m_pDoor2->GetMatrix().GetPosition().x += X;
-	m_pDoor2->GetMatrix().GetPosition().y += Y;
-	m_pDoor2->GetMatrix().UpdateRW();
+	door1Matrix.GetPosition().x -= X;
+	door1Matrix.GetPosition().y -= Y;
+	door2Matrix.GetPosition().x += X;
+	door2Matrix.GetPosition().y += Y;
+	door2Matrix.UpdateRW();
 	m_pDoor2->UpdateRwFrame();
-	m_pDoor2->GetMatrix().GetPosition().x -= X;
-	m_pDoor2->GetMatrix().GetPosition().y -= Y;
+	door2Matrix.GetPosition().x -= X;
+	door2Matrix.GetPosition().y -= Y;
 }
 
 void CGarage::RefreshDoorPointers(bool bCreate)
@@ -2542,7 +2561,33 @@ void CGarage::MarkThisCarAsCollectedFor60Seconds(int mi)
 	}
 }
 
-bool CGarage::IsPlayerEntirelyInsideGarage()
+bool
+CGarage::IsPlayerEntirelyInsideGarage()
 {
-	return IsEntityEntirelyInside3D(FindPlayerVehicle() ? (CEntity*)FindPlayerVehicle() : (CEntity*)FindPlayerPed(), 0.0f);
+	return IsEntityEntirelyInside3D(FindPlayerVehicle() ? (CEntity *)FindPlayerVehicle() : (CEntity *)FindPlayerPed(), 0.0f);
+}
+
+bool
+CGarage::IsEntityBoundingSpheresInside(CEntity *pEntity, const float fMarginX, const float fMarginY, const float fMarginZ) const
+{
+		// Cache pointers and matrices that are used repeatedly in the loop.
+		const CColModel * pColModel = pEntity->GetColModel();
+		const CMatrix& entityMatrix = pEntity->GetMatrix();
+
+		for (int i = 0; i < pColModel->numSpheres; i++) {
+			// Transform the sphere's local center to world coordinates once.
+		        const CVector sphereWorldPos = entityMatrix * pColModel->spheres[i].center;
+			const float radius = pColModel->spheres[i].radius;
+
+			// An early-out check: if any sphere is outside the garage bounds, the entity is not entirely inside.
+			if (sphereWorldPos.x - radius < m_fX1 - fMarginX || sphereWorldPos.x + radius > m_fX2 + fMarginX ||
+			    sphereWorldPos.y - radius < m_fY1 - fMarginY || sphereWorldPos.y + radius > m_fY2 + fMarginY ||
+			    sphereWorldPos.z - radius < m_fZ1 - fMarginZ || sphereWorldPos.z + radius > m_fZ2 + fMarginZ)
+			{
+				return false;
+			}
+		}
+
+		// If all spheres passed the check, the entity is entirely inside.
+		return true;
 }

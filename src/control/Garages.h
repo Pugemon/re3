@@ -180,6 +180,7 @@ public:
 	bool Does60SecondsNeedThisCar(int mi);
 	void MarkThisCarAsCollectedFor60Seconds(int mi);
 	bool IsPlayerEntirelyInsideGarage();
+	bool IsEntityBoundingSpheresInside(CEntity* pEntity, float fMarginX, float fMarginY, float fMarginZ) const;
 
 };
 

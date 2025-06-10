@@ -354,7 +354,8 @@ CDarkel::StartFrenzy(eWeaponType weaponType, int32 time, uint16 kill, int32 mode
 
 		if (FindPlayerVehicle()) {
 			player->m_currentWeapon = player->m_nSelectedWepSlot;
-			player->GetWeapon()->m_nAmmoInClip = Min(player->GetWeapon()->m_nAmmoTotal, CWeaponInfo::GetWeaponInfo(player->GetWeapon()->m_eWeaponType)->m_nAmountofAmmunition);
+			auto playerWeapon = player->GetWeapon();
+			playerWeapon->m_nAmmoInClip = Min(playerWeapon->m_nAmmoTotal, CWeaponInfo::GetWeaponInfo(playerWeapon->m_eWeaponType)->m_nAmountofAmmunition);
 			player->ClearWeaponTarget();
 		}
 	}

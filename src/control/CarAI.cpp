@@ -338,8 +338,10 @@ void CCarAI::UpdateCarAI(CVehicle* pVehicle)
 			break;
 		default:
 			if (pVehicle->bIsLawEnforcer && FindPlayerPed()->m_pWanted->GetWantedLevel() > 0 && !CCullZones::NoPolice()){
-				if (ABS(FindPlayerCoors().x - pVehicle->GetPosition().x) > 10.0f ||
-				  ABS(FindPlayerCoors().y - pVehicle->GetPosition().y) > 10.0f){
+				auto playerCoors = FindPlayerCoors();
+				auto& pVehiclePos = pVehicle->GetPosition();
+				if (ABS(playerCoors.x - pVehiclePos.x) > 10.0f ||
+				  ABS(playerCoors.y - pVehiclePos.y) > 10.0f){
 					pVehicle->AutoPilot.m_nCruiseSpeed = FindPoliceCarSpeedForWantedLevel(pVehicle);
 					pVehicle->SetStatus(STATUS_PHYSICS);
 					pVehicle->AutoPilot.m_nCarMission = 
