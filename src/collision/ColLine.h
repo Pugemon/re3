@@ -9,6 +9,6 @@ struct CColLine
 	int pad1;
 
 	CColLine(void) = default;
-	CColLine(const CVector &p0, const CVector &p1) { this->p0 = p0; this->p1 = p1; };
+	CColLine(const CVector &p0, const CVector &p1) : p0(p0), p1(p1) {  };
 	void Set(const CVector &p0, const CVector &p1);
 };
