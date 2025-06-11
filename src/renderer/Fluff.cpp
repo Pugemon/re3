@@ -735,8 +735,12 @@ void CTowerClock::Render()
 	if (TheCamera.IsSphereVisible(m_Position, m_fScale))
 	{
 		// Calculate angle for each clock index
-		float angleHour   = 2.0f * (float)PI * (CClock::GetMinutes() + 60.0f * CClock::GetHours())   / 720.0f;
-		float angleMinute = 2.0f * (float)PI * (CClock::GetSeconds() + 60.0f * CClock::GetMinutes()) / 3600.0f;
+		float angleHour   = 2.0f * PI * (CClock::GetMinutes() + 60.0f * CClock::GetHours())   / 720.0f;
+		float angleMinute = 2.0f * PI * (CClock::GetSeconds() + 60.0f * CClock::GetMinutes()) / 3600.0f;
+		auto sinAngleMinute = Sin(angleMinute);
+		auto sinAngleHour   = Sin(angleHour);
+		auto cosAngleMinute = Cos(angleMinute);
+		auto cosAngleHour   = Cos(angleHour);
 
 		// Prepare render states
 		RwRenderStateSet(rwRENDERSTATEZWRITEENABLE,      (void*)TRUE);
@@ -748,25 +752,25 @@ void CTowerClock::Render()
 		RwRenderStateSet(rwRENDERSTATETEXTURERASTER,     nil);
 
 		// Set vertices colors
-		RwIm3DVertexSetRGBA(&TempV[0], m_uRed, m_uGreen, m_uBlue, (uint8)(m_fIntensity * 255.0f));
-		RwIm3DVertexSetRGBA(&TempV[1], m_uRed, m_uGreen, m_uBlue, (uint8)(m_fIntensity * 255.0f));
-		RwIm3DVertexSetRGBA(&TempV[2], m_uRed, m_uGreen, m_uBlue, (uint8)(m_fIntensity * 255.0f));
-		RwIm3DVertexSetRGBA(&TempV[3], m_uRed, m_uGreen, m_uBlue, (uint8)(m_fIntensity * 255.0f));
+		RwIm3DVertexSetRGBA(&TempV[0], m_uRed, m_uGreen, m_uBlue, static_cast<uint8>(m_fIntensity * 255.0f));
+		RwIm3DVertexSetRGBA(&TempV[1], m_uRed, m_uGreen, m_uBlue, static_cast<uint8>(m_fIntensity * 255.0f));
+		RwIm3DVertexSetRGBA(&TempV[2], m_uRed, m_uGreen, m_uBlue, static_cast<uint8>(m_fIntensity * 255.0f));
+		RwIm3DVertexSetRGBA(&TempV[3], m_uRed, m_uGreen, m_uBlue, static_cast<uint8>(m_fIntensity * 255.0f));
 
 		// Set vertices position
 		RwIm3DVertexSetPos(&TempV[0], m_Position.x, m_Position.y, m_Position.z);
 		RwIm3DVertexSetPos(
 			&TempV[1],
-			m_Position.x + Sin(angleMinute) * m_fScale * m_Size.x,
-			m_Position.y + Sin(angleMinute) * m_fScale * m_Size.y,
-			m_Position.z + Cos(angleMinute) * m_fScale
+			m_Position.x + sinAngleMinute * m_fScale * m_Size.x,
+			m_Position.y + sinAngleMinute * m_fScale * m_Size.y,
+			m_Position.z + cosAngleMinute * m_fScale
 		);
 		RwIm3DVertexSetPos(&TempV[2], m_Position.x, m_Position.y, m_Position.z);
 		RwIm3DVertexSetPos(
 			&TempV[3],
-			m_Position.x + Sin(angleHour) * 0.75f * m_fScale * m_Size.x,
-			m_Position.y + Sin(angleHour) * 0.75f * m_fScale * m_Size.y,
-			m_Position.z + Cos(angleHour) * 0.75f * m_fScale
+			m_Position.x + sinAngleHour * 0.75f * m_fScale * m_Size.x,
+			m_Position.y + sinAngleHour * 0.75f * m_fScale * m_Size.y,
+			m_Position.z + cosAngleHour * 0.75f * m_fScale
 		);
 
 		LittleTest();

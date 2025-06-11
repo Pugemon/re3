@@ -4034,58 +4034,66 @@ CCam::Process_ModelView(const CVector &CameraTarget, float, float, float)
 	GetVectorsReadyForRW();
 }
 
-void
-CCam::ProcessPedsDeadBaby(void)
+void CCam::ProcessPedsDeadBaby(void)
 {
-	float Distance = 0.0f;
-	static bool SafeToRotate = false;
-	CVector TargetDist, TestPoint;
+    static bool SafeToRotate = false;
+    CVector TestPoint;
 
-	FOV = DefaultFOV;
-	TargetDist = Source - CamTargetEntity->GetPosition();
-	Distance = TargetDist.Magnitude();
-	Beta = CGeneral::GetATanOfXY(TargetDist.x, TargetDist.y);
-	while(Beta >= PI) Beta -= 2*PI;
-	while(Beta < -PI) Beta += 2*PI;
+    FOV = DefaultFOV;
 
-	if(ResetStatics){
-		TestPoint = CamTargetEntity->GetPosition() +
-			CVector(4.0f * Cos(Alpha) * Cos(Beta),
-			        4.0f * Cos(Alpha) * Sin(Beta),
-			        4.0f * Sin(Alpha));
-		bool Safe1 = CWorld::GetIsLineOfSightClear(TestPoint, CamTargetEntity->GetPosition(), true, false, false, true, false, true, true);
+    const CVector& targetPos = CamTargetEntity->GetPosition();
+    const CVector TargetDist = Source - targetPos;
 
-		TestPoint = CamTargetEntity->GetPosition() +
-			CVector(4.0f * Cos(Alpha) * Cos(Beta + DEGTORAD(120.0f)),
-			        4.0f * Cos(Alpha) * Sin(Beta + DEGTORAD(120.0f)),
-			        4.0f * Sin(Alpha));
-		bool Safe2 = CWorld::GetIsLineOfSightClear(TestPoint, CamTargetEntity->GetPosition(), true, false, false, true, false, true, true);
+    // Use MagnitudeSqr for early calculations if possible, and only sqrt when needed.
+    // However, here Magnitude() is called once, which is fine.
+    float Distance = TargetDist.Magnitude();
 
-		TestPoint = CamTargetEntity->GetPosition() +
-			CVector(4.0f * Cos(Alpha) * Cos(Beta - DEGTORAD(120.0f)),
-			        4.0f * Cos(Alpha) * Sin(Beta - DEGTORAD(120.0f)),
-			        4.0f * Sin(Alpha));
-		bool Safe3 = CWorld::GetIsLineOfSightClear(TestPoint, CamTargetEntity->GetPosition(), true, false, false, true, false, true, true);
 
-		SafeToRotate = Safe1 && Safe2 && Safe3;
+    Beta = NormalizeAngle(CGeneral::GetATanOfXY(TargetDist.x, TargetDist.y));
 
-		ResetStatics = false;
-	}
+    if (ResetStatics) {
+        const float cosAlpha = cosf(Alpha);
+        const float sinAlpha = sinf(Alpha);
+        const float commonRadius = 4.0f * cosAlpha; // The horizontal projection radius
 
-	if(SafeToRotate)
-		WellBufferMe(Beta + DEGTORAD(175.0f), &Beta, &BetaSpeed, 0.015f, 0.007f, true);
+        const float betaMain = Beta;
+        const float betaPlus120 = Beta + DEGTORAD(120.0f);
+        const float betaMinus120 = Beta - DEGTORAD(120.0f);
 
-	WellBufferMe(DEGTORAD(89.5f), &Alpha, &AlphaSpeed, 0.015f, 0.07f, true);
-	WellBufferMe(35.0f, &Distance, &DistanceSpeed, 0.006f, 0.007f, false);
 
-	Source = CamTargetEntity->GetPosition() +
-		CVector(Distance * Cos(Alpha) * Cos(Beta),
-		        Distance * Cos(Alpha) * Sin(Beta),
-		        Distance * Sin(Alpha));
-	m_cvecTargetCoorsForFudgeInter = CamTargetEntity->GetPosition();
-	Front = CamTargetEntity->GetPosition() - Source;
-	Front.Normalise();
-	GetVectorsReadyForRW();
+        TestPoint = targetPos + CVector(commonRadius * cosf(betaMain), commonRadius * sinf(betaMain), 4.0f * sinAlpha);
+        bool bSafe1 = CWorld::GetIsLineOfSightClear(TestPoint, targetPos, true, false, false, true, false, true, true);
+
+        TestPoint = targetPos + CVector(commonRadius * cosf(betaPlus120), commonRadius * sinf(betaPlus120), 4.0f * sinAlpha);
+        bool bSafe2 = CWorld::GetIsLineOfSightClear(TestPoint, targetPos, true, false, false, true, false, true, true);
+
+        TestPoint = targetPos + CVector(commonRadius * cosf(betaMinus120), commonRadius * sinf(betaMinus120), 4.0f * sinAlpha);
+        bool bSafe3 = CWorld::GetIsLineOfSightClear(TestPoint, targetPos, true, false, false, true, false, true, true);
+
+        SafeToRotate = bSafe1 && bSafe2 && bSafe3;
+        ResetStatics = false;
+    }
+
+    if (SafeToRotate)
+        WellBufferMe(NormalizeAngle(Beta + DEGTORAD(175.0f)), &Beta, &BetaSpeed, 0.015f, 0.007f, true);
+
+    WellBufferMe(DEGTORAD(89.5f), &Alpha, &AlphaSpeed, 0.015f, 0.07f, true);
+    WellBufferMe(35.0f, &Distance, &DistanceSpeed, 0.006f, 0.007f, false);
+
+    // Note: Alpha and Beta might have been changed by WellBufferMe, so we must re-calculate.
+    const float finalCosAlpha = cosf(Alpha);
+    const float finalSinAlpha = sinf(Alpha);
+    const float finalCosBeta = cosf(Beta);
+    const float finalSinBeta = sinf(Beta);
+
+    Source = targetPos + CVector(Distance * finalCosAlpha * finalCosBeta,
+                                 Distance * finalCosAlpha * finalSinBeta,
+                                 Distance * finalSinAlpha);
+
+    m_cvecTargetCoorsForFudgeInter = targetPos;
+    Front = targetPos - Source;
+    Front.Normalise();
+    GetVectorsReadyForRW();
 }
 
 bool

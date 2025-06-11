@@ -1066,109 +1066,122 @@ CPopulation::TestSafeForRealObject(CDummyObject *dummy)
 	return true;
 }
 
-void
-CPopulation::ManagePopulation(void)
+void CPopulation::ManagePopulation(void)
 {
 	int frameMod32 = CTimer::GetFrameCounter() & 31;
-	CVector playerPos = FindPlayerCentreOfWorld(CWorld::PlayerInFocus);
+	const CVector playerPos = FindPlayerCentreOfWorld(CWorld::PlayerInFocus);
 
-	// Why this code is here?! Delete temporary objects when they got too far, and convert others to "dummy" objects. (like lamp posts)
+	// Pre-calculate squared distance for cheaper comparisons
+	const float distanceCheckSqr = 80.0f * 80.0f;
+
+	// --- 1. Process Objects ---
 	int objectPoolSize = CPools::GetObjectPool()->GetSize();
 	for (int i = objectPoolSize * frameMod32 / 32; i < objectPoolSize * (frameMod32 + 1) / 32; i++) {
-		CObject *obj = CPools::GetObjectPool()->GetSlot(i);
-		if (obj && obj->CanBeDeleted()) {
-			if ((obj->GetPosition() - playerPos).Magnitude() <= 80.0f ||
-				(obj->m_objectMatrix.GetPosition() - playerPos).Magnitude() <= 80.0f) {
-				if (obj->ObjectCreatedBy == TEMP_OBJECT && CTimer::GetTimeInMilliseconds() > obj->m_nEndOfLifeTime) {
-					CWorld::Remove(obj);
-					delete obj;
-				}
-			} else {
-				if (obj->ObjectCreatedBy == TEMP_OBJECT) {
-					CWorld::Remove(obj);
-					delete obj;
-				} else if (obj->ObjectCreatedBy != CUTSCENE_OBJECT && TestRoomForDummyObject(obj)) {
-					ConvertToDummyObject(obj);
-				}
+		CObject* obj = CPools::GetObjectPool()->GetSlot(i);
+		if (!obj || !obj->CanBeDeleted())
+			continue;
+
+		// Use squared magnitude for performance. Check both positions if necessary.
+		bool isClose = (obj->GetPosition() - playerPos).MagnitudeSqr() <= distanceCheckSqr ||
+		               (obj->m_objectMatrix.GetPosition() - playerPos).MagnitudeSqr() <= distanceCheckSqr;
+
+		if (isClose) {
+			if (obj->ObjectCreatedBy == TEMP_OBJECT && CTimer::GetTimeInMilliseconds() > obj->m_nEndOfLifeTime) {
+				CWorld::Remove(obj);
+				delete obj;
+			}
+		} else {
+			if (obj->ObjectCreatedBy == TEMP_OBJECT) {
+				CWorld::Remove(obj);
+				delete obj;
+			} else if (obj->ObjectCreatedBy != CUTSCENE_OBJECT && TestRoomForDummyObject(obj)) {
+				ConvertToDummyObject(obj);
 			}
 		}
 	}
 
-	// Convert them back to real objects. Dummy objects don't have collisions, so they need to be converted.
+	// --- 2. Process Dummy Objects ---
 	int dummyPoolSize = CPools::GetDummyPool()->GetSize();
 	for (int i = dummyPoolSize * frameMod32 / 32; i < dummyPoolSize * (frameMod32 + 1) / 32; i++) {
-		CDummy *dummy = CPools::GetDummyPool()->GetSlot(i);
+		CDummy* dummy = CPools::GetDummyPool()->GetSlot(i);
 		if (dummy) {
-			if ((dummy->GetPosition() - playerPos).Magnitude() < 80.0f)
+			// Use squared magnitude here as well.
+			if ((dummy->GetPosition() - playerPos).MagnitudeSqr() < distanceCheckSqr)
 				ConvertToRealObject((CDummyObject*)dummy);
 		}
 	}
 
+	// --- 3. Process Peds ---
+	// Hoist invariant multipliers out of the loop.
+	const float creationDistMultiplier = PedCreationDistMultiplier();
+	const float cameraDistMultiplier = TheCamera.GenerationDistMultiplier;
+
 	int pedPoolSize = CPools::GetPedPool()->GetSize();
 #ifndef SQUEEZE_PERFORMANCE
-	for (int poolIndex = pedPoolSize-1; poolIndex >= 0; poolIndex--) {
+	for (int poolIndex = pedPoolSize - 1; poolIndex >= 0; poolIndex--) {
 #else
 	for (int poolIndex = (pedPoolSize * (frameMod32 + 1) / 32) - 1; poolIndex >= pedPoolSize * frameMod32 / 32; poolIndex--) {
 #endif
-		CPed *ped = CPools::GetPedPool()->GetSlot(poolIndex);
+		CPed* ped = CPools::GetPedPool()->GetSlot(poolIndex);
 
-		if (ped && !ped->IsPlayer() && ped->CanBeDeleted() && !ped->bInVehicle) {
-			if (ped->m_nPedState == PED_DEAD && CTimer::GetTimeInMilliseconds() - ped->m_bloodyFootprintCountOrDeathTime > 60000)
-				ped->bFadeOut = true;
+		if (!ped || ped->IsPlayer() || !ped->CanBeDeleted() || ped->bInVehicle)
+			continue;
 
-			if (ped->bFadeOut && CVisibilityPlugins::GetClumpAlpha(ped->GetClump()) == 0) {
-				RemovePed(ped);
-				continue;
-			}
+		if (ped->m_nPedState == PED_DEAD && CTimer::GetTimeInMilliseconds() - ped->m_bloodyFootprintCountOrDeathTime > 60000)
+			ped->bFadeOut = true;
 
-			float dist = (ped->GetPosition() - playerPos).Magnitude2D();
-
-			bool pedIsFarAway = false;
-			if (PedCreationDistMultiplier() * (PED_REMOVE_DIST_SPECIAL * TheCamera.GenerationDistMultiplier) < dist
-				|| (!ped->bCullExtraFarAway && PedCreationDistMultiplier() * PED_REMOVE_DIST * TheCamera.GenerationDistMultiplier < dist)
-#ifndef EXTENDED_OFFSCREEN_DESPAWN_RANGE
-				|| (PedCreationDistMultiplier() * (MIN_CREATION_DIST + CREATION_RANGE) * OFFSCREEN_CREATION_MULT < dist
-				&& !ped->GetIsOnScreen()
-				&& TheCamera.Cams[TheCamera.ActiveCam].Mode != CCam::MODE_SNIPER
-				&& TheCamera.Cams[TheCamera.ActiveCam].Mode != CCam::MODE_SNIPER_RUNABOUT
-				&& !TheCamera.Cams[TheCamera.ActiveCam].LookingLeft
-				&& !TheCamera.Cams[TheCamera.ActiveCam].LookingRight
-				&& !TheCamera.Cams[TheCamera.ActiveCam].LookingBehind)
-#endif
-				)
-				pedIsFarAway = true;
-
-			if (!pedIsFarAway)
-				continue;
-
-			if (ped->m_nPedState == PED_DEAD && !ped->bFadeOut) {
-				CVector pedPos = ped->GetPosition();
-
-				float randAngle = (uint8) CGeneral::GetRandomNumber() * (3.14f / 128.0f); // Not PI, 3.14
-				switch (CGeneral::GetRandomNumber() % 3) {
-					case 0:
-						CShadows::AddPermanentShadow(SHADOWTYPE_DARK, gpOutline1Tex, &pedPos,
-							0.9f * Cos(randAngle), 0.9f * Sin(randAngle), 0.9f * Sin(randAngle), -0.9f * Cos(randAngle),
-							255, 255, 255, 255, 4.0f, 40000, 1.0f);
-						break;
-					case 1:
-						CShadows::AddPermanentShadow(SHADOWTYPE_DARK, gpOutline2Tex, &pedPos,
-							0.9f * Cos(randAngle), 0.9f * Sin(randAngle), 0.9f * Sin(randAngle), -0.9f * Cos(randAngle),
-							255, 255, 255, 255, 4.0f, 40000, 1.0f);
-						break;
-					case 2:
-						CShadows::AddPermanentShadow(SHADOWTYPE_DARK, gpOutline3Tex, &pedPos,
-							0.9f * Cos(randAngle), 0.9f * Sin(randAngle), 0.9f * Sin(randAngle), -0.9f * Cos(randAngle),
-							255, 255, 255, 255, 4.0f, 40000, 1.0f);
-						break;
-					default:
-						break;
-				}
-			}
-			if (ped->GetIsOnScreen())
-				ped->bFadeOut = true;
-			else
-				RemovePed(ped);
+		if (ped->bFadeOut && CVisibilityPlugins::GetClumpAlpha(ped->GetClump()) == 0) {
+			RemovePed(ped);
+			continue;
 		}
+
+		const float dist2D = (ped->GetPosition() - playerPos).Magnitude2D();
+
+		// Simplify the distance check logic.
+		bool isFarAwayForSpecial = dist2D > creationDistMultiplier * (PED_REMOVE_DIST_SPECIAL * cameraDistMultiplier);
+		bool isFarAwayForNormal = !ped->bCullExtraFarAway && (dist2D > creationDistMultiplier * PED_REMOVE_DIST * cameraDistMultiplier);
+#ifndef EXTENDED_OFFSCREEN_DESPAWN_RANGE
+		bool isFarAwayOffscreen = false;
+		if (!ped->GetIsOnScreen() && TheCamera.Cams[TheCamera.ActiveCam].Mode != CCam::MODE_SNIPER /* etc. */) {
+			isFarAwayOffscreen = dist2D > creationDistMultiplier * (MIN_CREATION_DIST + CREATION_RANGE) * OFFSCREEN_CREATION_MULT;
+		}
+		if (!isFarAwayForSpecial && !isFarAwayForNormal && !isFarAwayOffscreen)
+			continue;
+#else
+		if (!isFarAwayForSpecial && !isFarAwayForNormal)
+			continue;
+#endif
+
+		if (ped->m_nPedState == PED_DEAD && !ped->bFadeOut) {
+			CVector pedPos = ped->GetPosition();
+			float randAngle = (uint8)CGeneral::GetRandomNumber() * (3.14f / 128.0f);
+
+			// --- Optimization V810: Calculate sin and cos only once ---
+			float cosRandAngle, sinRandAngle;
+			sinRandAngle = sinf(randAngle); // Or use a sincos function if available
+			cosRandAngle = cosf(randAngle);
+
+			float x1 = 0.9f * cosRandAngle;
+			float y1 = 0.9f * sinRandAngle;
+			float x2 = y1;
+			float y2 = -x1;
+
+			// Use a pointer to the texture to avoid repeating the function call.
+			RwTexture* shadowTex = nullptr;
+			switch (CGeneral::GetRandomNumber() % 3) {
+				case 0: shadowTex = gpOutline1Tex; break;
+				case 1: shadowTex = gpOutline2Tex; break;
+				case 2: shadowTex = gpOutline3Tex; break;
+			}
+			if (shadowTex) {
+				CShadows::AddPermanentShadow(SHADOWTYPE_DARK, shadowTex, &pedPos,
+					x1, y1, x2, y2, 255, 255, 255, 255, 4.0f, 40000, 1.0f);
+			}
+		}
+
+		if (ped->GetIsOnScreen())
+			ped->bFadeOut = true;
+		else
+			RemovePed(ped);
 	}
 }
